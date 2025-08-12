@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Planify</string>
+    <string name="toast_added_plans">Записал!</string>
+    <string name="button_add_plans">Добавь это</string>
+    <string name="bottom_text_have_plans">Великолепно! Planify запомнил\nтвои планы на сегодня,\nи поможет вспомнить о них\nраз в 2 часа.\n\nТы можешь добавить в список что пожелаешь - просто напиши это выше.</string>
+    <string name="bottom_text_first_launch">Приветствую! Здесь ты можешь записать все свои грандиозные\n(и не только) планы на сегодня,\nа Planify будет напоминать о них каждые 2 часа.\n\nАх да, разумеется, поменять их потом не составит труда!</string>
+    <string name="bottom_text_no_plans">Впереди - чудный новый день,\nа вчерашний подошёл к концу.\nПора поразмыслить над списком дел на сегодня… или можешь немного передохнуть.</string>
+    <string name="label_add_plans">Внести что-то в список…</string>
+    <string name="label_set_plans">Что хочешь сделать?</string>
+    <string name="toast_set_plans">Принял!</string>
+    <string name="button_set_plans">Запомни</string>
+    <string name="plans_card_title">Привет! Вот твои планы:</string>
+    <string name="button_finish_editing">Всё, сохраняй</string>
+    <string name="label_edit_plans">Меняй сколько влезет</string>
+    <string name="notifications_channel_name">Планы в Planify</string>
+    <string name="notification_text">На сегодня ты запланировал:</string>
+    <string name="notification_title_03">Эй… просто напоминаю</string>
+    <string name="notifications_channel_description">Напоминания о твоих планах</string>
+    <string name="notification_title_01">Привет! Тебя ждут большие дела</string>
+    <string name="notification_title_02">Как ты? Освежи в памяти свои планы</string>
+    <string name="reset_notification_title">Здравствуй!</string>
+    <string name="reset_notification_text_01">Вчерашние планы сброшены. Что сегодня на повестке дня?</string>
+    <string name="reset_notification_text_02">Вчерашние планы позабыты. Чем сегодня займёшься?</string>
+    <string name="reset_notification_text_03">Вчерашние планы бесследно исчезли. А что насчёт сегодняшних?</string>
+    <string name="button_edit_plans">Поменяй планы</string>
+    <string name="toast_edited_plans">Сделано!</string>
+</resources>
