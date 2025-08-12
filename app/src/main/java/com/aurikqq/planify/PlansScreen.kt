@@ -76,7 +76,6 @@ fun Plans(modifier: Modifier = Modifier) {
     var isDebugEnabled by remember { mutableStateOf(false) }
     createNotificationChannel(context)
     RequestNotificationsPermission()
-    //sendTestNotification(context.applicationContext)
     LazyColumn(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = if (havePlans) Arrangement.Top else Arrangement.Center,
@@ -250,7 +249,7 @@ fun PlansPreview() {
 // DONE make plans editing
 // DONE fix notifications icon and launch screen
 // DONE make lang independent from system
-// make debug menu
+// DONE make debug menu
 // clean up code
 
 // add settings
