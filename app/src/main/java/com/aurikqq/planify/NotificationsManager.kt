@@ -131,21 +131,21 @@ fun schedulePlanReminders(context: Context) {
     )
 }
 
-fun sendTestNotification(context: Context) {
-    val testReminderRequest = OneTimeWorkRequestBuilder<NotificationsWorker>().build()
-    WorkManager.getInstance(context).enqueueUniqueWork(
-        "testPlanReminder",
-        ExistingWorkPolicy.KEEP,
-        testReminderRequest
-    )
-
-    val testPlansResetNotificationRequest = OneTimeWorkRequestBuilder<PlansResetNotification>().build()
-    WorkManager.getInstance(context).enqueueUniqueWork(
-        "testDailyPlanResetNotification",
-        ExistingWorkPolicy.KEEP,
-        testPlansResetNotificationRequest
-    )
-}
+//fun sendTestNotification(context: Context) {
+//    val testReminderRequest = OneTimeWorkRequestBuilder<NotificationsWorker>().build()
+//    WorkManager.getInstance(context).enqueueUniqueWork(
+//        "testPlanReminder",
+//        ExistingWorkPolicy.KEEP,
+//        testReminderRequest
+//    )
+//
+//    val testPlansResetNotificationRequest = OneTimeWorkRequestBuilder<PlansResetNotification>().build()
+//    WorkManager.getInstance(context).enqueueUniqueWork(
+//        "testDailyPlanResetNotification",
+//        ExistingWorkPolicy.KEEP,
+//        testPlansResetNotificationRequest
+//    )
+//}
 
 fun cancelPlanReminders(context: Context) {
     WorkManager.getInstance(context).cancelUniqueWork("planReminderWork")
@@ -217,8 +217,8 @@ class PlansResetNotification(val context: Context, parameters: WorkerParameters)
     CoroutineWorker(context, parameters) {
     val resetNotificationTexts = listOf(
         context.getString(R.string.reset_notification_text_01),
-        context.getString(R.string.reset_notification_text_01),
-        context.getString(R.string.reset_notification_text_01)
+        context.getString(R.string.reset_notification_text_02),
+        context.getString(R.string.reset_notification_text_03)
     )
     override suspend fun doWork(): Result {
         return try {
@@ -243,7 +243,7 @@ class PlansResetNotification(val context: Context, parameters: WorkerParameters)
     }
 }
 
-fun scheduleResetNotification(context: Context) {
+fun scheduleResetNotification(context: Context) { /*TODO*/ // fix delaying notification
     val workManager = WorkManager.getInstance(context)
     val calendar = Calendar.getInstance().apply() {
         set(Calendar.HOUR_OF_DAY, 7)
