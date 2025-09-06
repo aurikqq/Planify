@@ -117,6 +117,7 @@ fun ConstantPlansScreen(navController: NavController, modifier: Modifier = Modif
                         ElevatedButton(
                             onClick = {
                                 isEditing = false
+                                sharedPreferences.edit { putString(KEY_CONSTANT_PLANS, constantPlans) }
                                 Toast.makeText(
                                     context,
                                     context.getString(R.string.toast_added_plans),
