@@ -2,13 +2,16 @@ package com.aurikqq.planify
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.AlarmManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
@@ -20,8 +23,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.ExistingWorkPolicy
-import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
@@ -29,6 +30,63 @@ import java.util.Calendar
 import java.util.concurrent.TimeUnit
 
 const val CHANNEL_ID = "planify_channel_id"
+
+class TimeReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context?, intent: Intent?) {
+        showPlansResetNotification(context as Context)
+        AlarmScheduler.scheduleAlarm(context)
+    }
+}
+
+class BootReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context?, intent: Intent?) {
+        if (intent?.action == Intent.ACTION_BOOT_COMPLETED) {
+            val calendar = Calendar.getInstance()
+
+            val time = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, 2)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+            }
+
+            if (calendar.after(time)) {
+                TimeReceiver().onReceive(context, null)
+            }
+
+            AlarmScheduler.scheduleAlarm(context as Context)
+        }
+    }
+}
+
+object AlarmScheduler {
+    @SuppressLint("ScheduleExactAlarm")
+    fun scheduleAlarm(context: Context) {
+        val calendar = Calendar.getInstance().apply {
+            timeInMillis = System.currentTimeMillis()
+            set(Calendar.HOUR_OF_DAY, 2)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            if (before(Calendar.getInstance())) {
+                add(Calendar.DAY_OF_MONTH, 1)
+            }
+        }
+
+        val intent = Intent(context, TimeReceiver::class.java)
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        alarmManager.setExactAndAllowWhileIdle(
+            AlarmManager.RTC_WAKEUP,
+            calendar.timeInMillis,
+            pendingIntent
+        )
+    }
+}
 
 fun createNotificationChannel(context: Context) {
     val CHANNEL_NAME = context.getString(R.string.notifications_channel_name)
@@ -50,7 +108,6 @@ fun showPlansNotification(
     context: Context,
     title: String,
     text: String,
-    notificationId: Int = 1
 ) {
     val intent = Intent(context, MainActivity::class.java).apply {
         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
@@ -68,17 +125,20 @@ fun showPlansNotification(
         .setStyle(NotificationCompat.BigTextStyle().bigText(""))
 
     with(NotificationManagerCompat.from(context)) {
-        notify(notificationId, builder.build())
+        notify(1, builder.build())
     }
 }
 
 @SuppressLint("MissingPermission")
 fun showPlansResetNotification(
     context: Context,
-    title: String,
-    text: String,
-    notificationId: Int = 2
 ) {
+    val resetNotificationTexts = listOf(
+        context.getString(R.string.reset_notification_text_01),
+        context.getString(R.string.reset_notification_text_02),
+        context.getString(R.string.reset_notification_text_03)
+    )
+
     val intent = Intent(context, MainActivity::class.java).apply {
         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
     }
@@ -87,15 +147,15 @@ fun showPlansResetNotification(
 
     val builder = NotificationCompat.Builder(context, CHANNEL_ID)
         .setSmallIcon(R.drawable.icon_with_top)
-        .setContentTitle(title)
-        .setContentText(text)
+        .setContentTitle(context.getString(R.string.reset_notification_title))
+        .setContentText(resetNotificationTexts.random())
         .setPriority(NotificationCompat.PRIORITY_LOW)
         .setContentIntent(pendingIntent)
         .setAutoCancel(true)
-        .setStyle(NotificationCompat.BigTextStyle().bigText(""))
+        //.setStyle(NotificationCompat.BigTextStyle().bigText(""))
 
     with(NotificationManagerCompat.from(context)) {
-        notify(notificationId, builder.build())
+        notify(2, builder.build())
     }
 }
 
@@ -130,22 +190,6 @@ fun schedulePlanReminders(context: Context) {
         planReminderRequest
     )
 }
-
-//fun sendTestNotification(context: Context) {
-//    val testReminderRequest = OneTimeWorkRequestBuilder<NotificationsWorker>().build()
-//    WorkManager.getInstance(context).enqueueUniqueWork(
-//        "testPlanReminder",
-//        ExistingWorkPolicy.KEEP,
-//        testReminderRequest
-//    )
-//
-//    val testPlansResetNotificationRequest = OneTimeWorkRequestBuilder<PlansResetNotification>().build()
-//    WorkManager.getInstance(context).enqueueUniqueWork(
-//        "testDailyPlanResetNotification",
-//        ExistingWorkPolicy.KEEP,
-//        testPlansResetNotificationRequest
-//    )
-//}
 
 fun cancelPlanReminders(context: Context) {
     WorkManager.getInstance(context).cancelUniqueWork("planReminderWork")
@@ -184,6 +228,7 @@ class PlansReset(context: Context, parameters: WorkerParameters) :
             Result.success()
         }
         catch (e: Exception) {
+            Log.d("PlansReset", "Error: $e")
             Result.failure()
         }
     }
@@ -191,7 +236,7 @@ class PlansReset(context: Context, parameters: WorkerParameters) :
 
 fun scheduleReset(context: Context) {
     val workManager = WorkManager.getInstance(context)
-    val calendar = Calendar.getInstance().apply() {
+    val calendar = Calendar.getInstance().apply {
         set(Calendar.HOUR_OF_DAY, 0)
         set(Calendar.MINUTE, 0)
         set(Calendar.SECOND, 0)
@@ -208,60 +253,6 @@ fun scheduleReset(context: Context) {
         .build()
     workManager.enqueueUniquePeriodicWork(
         "daily_plan_reset",
-        ExistingPeriodicWorkPolicy.KEEP,
-        resetRequest
-    )
-}
-
-class PlansResetNotification(val context: Context, parameters: WorkerParameters) :
-    CoroutineWorker(context, parameters) {
-    val resetNotificationTexts = listOf(
-        context.getString(R.string.reset_notification_text_01),
-        context.getString(R.string.reset_notification_text_02),
-        context.getString(R.string.reset_notification_text_03)
-    )
-    override suspend fun doWork(): Result {
-        return try {
-            showPlansResetNotification(
-                applicationContext,
-                context.getString(R.string.reset_notification_title),
-                resetNotificationTexts.random()
-            )
-            val sharedPreferences = applicationContext.getSharedPreferences(
-                PREFERENCES_NAME,
-                Context.MODE_PRIVATE
-            )
-            sharedPreferences.edit {
-                remove(KEY_PLANS)
-                putBoolean(KEY_HAVE_PLANS, false)
-            }
-            Result.success()
-        }
-        catch (e: Exception) {
-            Result.failure()
-        }
-    }
-}
-
-fun scheduleResetNotification(context: Context) { /*TODO*/ // fix delaying notification
-    val workManager = WorkManager.getInstance(context)
-    val calendar = Calendar.getInstance().apply() {
-        set(Calendar.HOUR_OF_DAY, 7)
-        set(Calendar.MINUTE, 0)
-        set(Calendar.SECOND, 0)
-        if (before(Calendar.getInstance())) {
-            add(Calendar.DAY_OF_MONTH, 1)
-        }
-    }
-    val initialDelay = calendar.timeInMillis - System.currentTimeMillis()
-    val resetRequest = PeriodicWorkRequestBuilder<PlansResetNotification>(
-        1,
-        TimeUnit.DAYS
-    )
-        .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS)
-        .build()
-    workManager.enqueueUniquePeriodicWork(
-        "daily_plan_reset_notification",
         ExistingPeriodicWorkPolicy.KEEP,
         resetRequest
     )

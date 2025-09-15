@@ -1,5 +1,11 @@
 package com.aurikqq.planify
 
+enum class PlansScreenTabs {
+    Daily,
+    Notes,
+    History
+}
+
 const val PREFERENCES_NAME = "com.aurikqq.planify.AppPreferences"
 const val KEY_PLANS = "user_plans"
 const val KEY_CONSTANT_PLANS = "constant_plans"
