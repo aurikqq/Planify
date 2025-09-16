@@ -57,7 +57,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppActivity() {
     val navController = rememberNavController()
-    val orientation = LocalConfiguration.current.navigation
+    //val orientation = LocalConfiguration.current.navigation
 
     Scaffold(
         //bottomBar = { if (orientation == Configuration.ORIENTATION_PORTRAIT) BottomBar(navController) },
@@ -139,6 +139,7 @@ fun NavRail(navController: NavController) {
 
             NavigationRailItem(
                 selected = currentScreen == "",
+                enabled = false,
                 onClick = {
                     //navController.navigate(PLANS_SCREEN)
                 },
@@ -154,6 +155,7 @@ fun NavRail(navController: NavController) {
 
             NavigationRailItem(
                 selected = currentScreen == "",
+                enabled = false,
                 onClick = {
                     //navController.navigate(PLANS_SCREEN)
                 },

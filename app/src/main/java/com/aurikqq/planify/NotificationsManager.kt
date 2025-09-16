@@ -251,6 +251,7 @@ fun scheduleReset(context: Context) {
     )
         .setInitialDelay(initialDelay, TimeUnit.MILLISECONDS)
         .build()
+
     workManager.enqueueUniquePeriodicWork(
         "daily_plan_reset",
         ExistingPeriodicWorkPolicy.KEEP,

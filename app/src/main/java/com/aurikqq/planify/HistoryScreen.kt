@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Card
@@ -30,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -56,11 +58,16 @@ fun HistoryScreen() {
             val plansList =
                 Json.decodeFromString<MutableList<Pair<String, String>>>(plansListJson)
             items(plansList) { plan ->
-                var isCardExtended by remember { mutableStateOf(plan == plansList.last()) }
+                var isCardExtended by remember { mutableStateOf(plan == plansList.first()) }
                 Card(
-                    elevation = CardDefaults.cardElevation(4.dp),
+                    elevation = CardDefaults.cardElevation(0.dp),
                     modifier = Modifier
                         .fillMaxWidth()
+                        .shadow(
+                            elevation = 4.dp,
+                            shape = RoundedCornerShape(12.dp),
+                            clip = false
+                        )
                         .animateContentSize()
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {

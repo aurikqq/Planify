@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -40,6 +42,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -53,6 +56,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.aurikqq.planify.ui.theme.PlanifyTheme
 import kotlinx.serialization.json.Json
 import java.text.SimpleDateFormat
@@ -92,6 +98,15 @@ fun MainScreen(navController: NavHostController, modifier: Modifier = Modifier) 
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
+//                    modifier = Modifier.clickable(onClick = {
+//                        val workManager = WorkManager.getInstance(context)
+//                        val resetRequest = OneTimeWorkRequestBuilder<PlansReset>().build()
+//                        workManager.enqueueUniqueWork(
+//                            "plan_reset",
+//                            ExistingWorkPolicy.KEEP,
+//                            resetRequest
+//                        )
+//                    })
                 )
             }
 
@@ -160,10 +175,15 @@ fun DailyPlansScreen(modifier: Modifier) {
         if (havePlans) {
             item {
                 Card(
-                    elevation = CardDefaults.cardElevation(4.dp),
+                    elevation = CardDefaults.cardElevation(0.dp),
                     modifier = Modifier
                         .widthIn(max = 800.dp)
                         .fillMaxWidth()
+                        .shadow(
+                            elevation = 4.dp,
+                            shape = RoundedCornerShape(12.dp),
+                            clip = false
+                        )
                         .animateContentSize()
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -226,9 +246,9 @@ fun DailyPlansScreen(modifier: Modifier) {
                         var plansListJson =
                             sharedPreferences.getString(KEY_DAILY_PLANS_HISTORY, "") ?: ""
                         val plansList =
-                            if (plansListJson.isNotBlank()) Json.decodeFromString<MutableList<Pair<String, String>>>(
-                                plansListJson
-                            ) else mutableListOf(plansWithDateSet)
+                            if (plansListJson.isNotBlank()) Json.decodeFromString<MutableList<Pair<String, String>>>(plansListJson)
+                            else mutableListOf()
+                        plansList.add(0, plansWithDateSet)
                         plansListJson = Json.encodeToString(plansList)
 
                         sharedPreferences.edit(commit = true) {
@@ -240,6 +260,7 @@ fun DailyPlansScreen(modifier: Modifier) {
                         plans = tempPlans
                         havePlans = true
                         tempPlans = ""
+
                         Handler(Looper.getMainLooper()).postDelayed({
                             schedulePlanReminders(context.applicationContext)
                             scheduleReset(context.applicationContext)
