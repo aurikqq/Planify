@@ -1,8 +1,6 @@
 package com.aurikqq.planify
 
-import android.annotation.SuppressLint
 import android.content.Context
-import android.widget.Toast
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
@@ -30,11 +28,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -45,20 +40,34 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.edit
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.aurikqq.planify.ui.theme.PlanifyTheme
+import com.aurikqq.planify.viewmodels.NotesScreenViewModel
+import com.aurikqq.planify.viewmodels.NotesScreenViewModelFactory
 
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+data class NotesScreenUiState(
+    val notes: String = "",
+    val haveNotes: Boolean = false,
+    val isEditing: Boolean = false,
+    val tempNotes: String = ""
+)
+
 @Composable
-fun ConstantPlansScreen(modifier: Modifier = Modifier) {
+fun NotesScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val sharedPreferences = remember {
-        context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
-    }
-    var haveConstantPlans by rememberSaveable { mutableStateOf(sharedPreferences.getBoolean(KEY_HAVE_CONSTANT_PLANS, false)) }
-    var constantPlans by remember { mutableStateOf(sharedPreferences.getString(KEY_CONSTANT_PLANS, "") ?: "") }
-    var isEditing by remember { mutableStateOf(false) }
-    var tempConstantPlans by remember { mutableStateOf("") }
+
+    val viewModel: NotesScreenViewModel = viewModel(
+        factory = NotesScreenViewModelFactory(
+            PlansRepository(
+                context.getSharedPreferences(
+                    PREFERENCES_NAME, Context.MODE_PRIVATE
+                ),
+                context
+            )
+        )
+    )
+
+    val uiState by viewModel.uiState.collectAsState()
 
     LazyColumn(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -68,9 +77,9 @@ fun ConstantPlansScreen(modifier: Modifier = Modifier) {
             .fillMaxSize()
             .imePadding()
     ) {
-        if (haveConstantPlans) {
+        if (uiState.haveNotes) {
             item {
-                if (!isEditing) {
+                if (!uiState.isEditing) {
                     Card(
                         elevation = CardDefaults.cardElevation(0.dp),
                         modifier = Modifier
@@ -93,15 +102,15 @@ fun ConstantPlansScreen(modifier: Modifier = Modifier) {
                                     .padding(bottom = 8.dp)
                             )
                             Text(
-                                text = constantPlans,
+                                text = uiState.notes,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                 } else {
                     OutlinedTextField(
-                        value = constantPlans,
-                        onValueChange = { constantPlans = it },
+                        value = uiState.tempNotes,
+                        onValueChange = { viewModel.onTempNotesInput(it) },
                         label = { "Изменяй и властвуй..." },
                         modifier = Modifier
                             .defaultMinSize(minHeight = 120.dp)
@@ -113,25 +122,15 @@ fun ConstantPlansScreen(modifier: Modifier = Modifier) {
             }
 
             item {
-                if (!isEditing) {
+                if (!uiState.isEditing) {
                     ElevatedButton(
-                        onClick = {
-                            isEditing = true
-                        }
+                        onClick = { viewModel.startEditing() }
                     ) {
                         Text(stringResource(R.string.button_edit_plans))
                     }
                 } else {
                     ElevatedButton(
-                        onClick = {
-                            isEditing = false
-                            sharedPreferences.edit { putString(KEY_CONSTANT_PLANS, constantPlans) }
-                            Toast.makeText(
-                                context,
-                                context.getString(R.string.toast_added_plans),
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
+                        onClick = { viewModel.endEditing() }
                     ) {
                         Text(stringResource(R.string.button_finish_editing))
                     }
@@ -155,8 +154,8 @@ fun ConstantPlansScreen(modifier: Modifier = Modifier) {
                 )
                 Spacer(modifier = Modifier.size(32.dp))
                 OutlinedTextField(
-                    value = tempConstantPlans,
-                    onValueChange = { tempConstantPlans = it },
+                    value = uiState.tempNotes,
+                    onValueChange = { viewModel.onTempNotesInput(it) },
                     label = { "Что стоит запомнить?" },
                     modifier = Modifier
                         .defaultMinSize(minHeight = 120.dp)
@@ -167,23 +166,8 @@ fun ConstantPlansScreen(modifier: Modifier = Modifier) {
             }
             item {
                 Button(
-                    onClick = {
-                        sharedPreferences.edit {
-                            putString(KEY_CONSTANT_PLANS, tempConstantPlans)
-                            putBoolean(KEY_HAVE_CONSTANT_PLANS, true)
-                        }
-
-                        constantPlans = tempConstantPlans
-                        haveConstantPlans = true
-                        tempConstantPlans = ""
-
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.toast_set_plans), Toast.LENGTH_SHORT
-                        ).show()
-
-                    },
-                    enabled = tempConstantPlans.isNotBlank(),
+                    onClick = { viewModel.setNotes() },
+                    enabled = uiState.tempNotes.isNotBlank(),
                     modifier = Modifier.animateItem(placementSpec = spring())
                 ) {
                     Text(stringResource(R.string.button_set_plans))
@@ -197,6 +181,6 @@ fun ConstantPlansScreen(modifier: Modifier = Modifier) {
 @Composable
 fun ConstantPlansPreview() {
     PlanifyTheme {
-        ConstantPlansScreen()
+        NotesScreen()
     }
 }

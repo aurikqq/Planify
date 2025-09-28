@@ -1,13 +1,18 @@
 package com.aurikqq.planify
 
 import android.annotation.SuppressLint
+import android.content.res.Configuration
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -24,8 +29,8 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -35,13 +40,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.WindowCompat
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.aurikqq.planify.screens.MainScreen
 import com.aurikqq.planify.ui.theme.PlanifyTheme
 
 class MainActivity : ComponentActivity() {
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
@@ -54,16 +63,28 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AppActivity() {
     val navController = rememberNavController()
-    //val orientation = LocalConfiguration.current.navigation
+    val orientation = LocalConfiguration.current.navigation
 
     Scaffold(
-        //bottomBar = { if (orientation == Configuration.ORIENTATION_PORTRAIT) BottomBar(navController) },
+        bottomBar = { if (orientation == Configuration.ORIENTATION_PORTRAIT) BottomBar(navController) },
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
-        MainScreen(navController = navController, modifier = Modifier.padding(innerPadding))
+        MainScreen(
+            navController = navController,
+            modifier = Modifier
+                .padding(
+                    start = innerPadding.calculateStartPadding(LayoutDirection.Ltr),
+                    top = innerPadding.calculateTopPadding(),
+                    end = innerPadding.calculateEndPadding(LayoutDirection.Ltr),
+                    bottom = 0.dp
+                )
+
+                .fillMaxSize(),
+        )
     }
 }
 
@@ -86,6 +107,7 @@ fun BottomBar(navController: NavController) {
                 label = { Text("Планы") }
             )
             NavigationBarItem(
+                enabled = false,
                 selected = currentScreen == "",
                 onClick = {
                     //navController.navigate(PLANS_SCREEN)
@@ -99,6 +121,7 @@ fun BottomBar(navController: NavController) {
                 label = { Text("Занятия") }
             )
             NavigationBarItem(
+                enabled = false,
                 selected = currentScreen == "",
                 onClick = {
                     //navController.navigate(PLANS_SCREEN)
@@ -176,7 +199,7 @@ fun NavRail(navController: NavController) {
 fun TabsBar(navController: NavController) {
     var selectedTab by rememberSaveable { mutableIntStateOf(PlansScreenTabs.Daily.ordinal) }
 
-    SecondaryTabRow(selectedTabIndex = selectedTab) {
+    TabRow(selectedTabIndex = selectedTab) {
         Tab(
             selected = selectedTab == PlansScreenTabs.Daily.ordinal,
             onClick = {
@@ -203,3 +226,20 @@ fun TabsBar(navController: NavController) {
         )
     }
 }
+
+
+/*TODO*/
+
+// DONE MainScreen view model
+//    plans adding
+//    plans editing
+//    history
+//    plans setting
+//  great!
+
+// Notes view model
+//    setting notes
+//    editing them
+
+// History view model
+//    getting plans

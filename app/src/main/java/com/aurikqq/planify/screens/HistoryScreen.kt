@@ -1,6 +1,5 @@
 package com.aurikqq.planify
 
-import android.annotation.SuppressLint
 import android.content.Context
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
@@ -24,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -36,16 +36,29 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.serialization.json.Json
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.aurikqq.planify.viewmodels.HistoryScreenViewModel
+import com.aurikqq.planify.viewmodels.HistoryScreenViewModelFactory
 
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+data class HistoryScreenUiState(
+    val plansList: MutableList<Pair<String, String>> = mutableListOf()
+)
+
 @Composable
 fun HistoryScreen() {
     val context = LocalContext.current
-    val sharedPreferences = remember {
-        context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
-    }
-    val plansListJson = sharedPreferences.getString(KEY_DAILY_PLANS_HISTORY, "") ?: ""
+    val viewModel: HistoryScreenViewModel = viewModel(
+        factory = HistoryScreenViewModelFactory(
+            PlansRepository(
+                context.getSharedPreferences(
+                    PREFERENCES_NAME, Context.MODE_PRIVATE
+                ),
+                context
+            )
+        )
+    )
+
+    val uiState by viewModel.uiState.collectAsState()
 
     LazyColumn(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -54,11 +67,9 @@ fun HistoryScreen() {
         modifier = Modifier
             .fillMaxSize()
     ) {
-        if (plansListJson.isNotBlank()) {
-            val plansList =
-                Json.decodeFromString<MutableList<Pair<String, String>>>(plansListJson)
-            items(plansList) { plan ->
-                var isCardExtended by remember { mutableStateOf(plan == plansList.first()) }
+        if (uiState.plansList.isNotEmpty()) {
+            items(uiState.plansList.reversed()) { plan ->
+                var isCardExtended by remember { mutableStateOf(plan == uiState.plansList.last()) }
                 Card(
                     elevation = CardDefaults.cardElevation(0.dp),
                     modifier = Modifier
