@@ -74,13 +74,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.aurikqq.planify.CONSTANT_PLANS_SCREEN
 import com.aurikqq.planify.HISTORY_SCREEN
-import com.aurikqq.planify.HistoryScreen
 import com.aurikqq.planify.NavRail
-import com.aurikqq.planify.NotesScreen
 import com.aurikqq.planify.PLANS_SCREEN
 import com.aurikqq.planify.PREFERENCES_NAME
-import com.aurikqq.planify.PlansRepository
 import com.aurikqq.planify.R
+import com.aurikqq.planify.Repository
 import com.aurikqq.planify.RequestNotificationsPermission
 import com.aurikqq.planify.TabsBar
 import com.aurikqq.planify.createNotificationChannel
@@ -205,7 +203,6 @@ fun DaysList(
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 fun reformatDate(date: String): String? {
     val formatWithYear = DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.getDefault())
     val formatWithoutYear = DateTimeFormatterBuilder()
@@ -257,7 +254,7 @@ fun MainScreen(
 
     val viewModel: MainScreenViewModel = viewModel(
         factory = MainScreenViewModelFactory(
-            PlansRepository(
+            Repository(
                 context.getSharedPreferences(
                     PREFERENCES_NAME, Context.MODE_PRIVATE),
                     context

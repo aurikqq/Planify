@@ -1,4 +1,4 @@
-package com.aurikqq.planify
+package com.aurikqq.planify.screens
 
 import android.content.Context
 import androidx.compose.animation.animateContentSize
@@ -37,6 +37,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.aurikqq.planify.PREFERENCES_NAME
+import com.aurikqq.planify.Repository
 import com.aurikqq.planify.viewmodels.HistoryScreenViewModel
 import com.aurikqq.planify.viewmodels.HistoryScreenViewModelFactory
 
@@ -49,7 +51,7 @@ fun HistoryScreen() {
     val context = LocalContext.current
     val viewModel: HistoryScreenViewModel = viewModel(
         factory = HistoryScreenViewModelFactory(
-            PlansRepository(
+            Repository(
                 context.getSharedPreferences(
                     PREFERENCES_NAME, Context.MODE_PRIVATE
                 ),

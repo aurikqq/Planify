@@ -2,18 +2,16 @@ package com.aurikqq.planify
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.os.Build
 import android.widget.Toast
-import androidx.annotation.RequiresApi
 import androidx.annotation.StringRes
 import androidx.core.content.edit
+import com.aurikqq.planify.viewmodels.Note
 import kotlinx.serialization.json.Json
-import java.lang.IndexOutOfBoundsException
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-class PlansRepository(private val sharedPreferences: SharedPreferences, private val context: Context) {
+class Repository(private val sharedPreferences: SharedPreferences, private val context: Context) {
     fun getDaysList(): MutableList<Pair<String, String>> {
         val daysListJson = sharedPreferences.getString(KEY_DAILY_PLANS_LIST, "[]") ?: "[]"
         return Json.decodeFromString(daysListJson)
@@ -32,7 +30,6 @@ class PlansRepository(private val sharedPreferences: SharedPreferences, private 
         return sharedPreferences.getBoolean("${KEY_HAVE_PLANS}_$date", false)
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     fun savePlansForDate(date: String, plans: String) {
         val dailyPlansHistory =
             sharedPreferences.getString(KEY_DAILY_PLANS_HISTORY, "[]") ?: "[]"
@@ -89,7 +86,6 @@ class PlansRepository(private val sharedPreferences: SharedPreferences, private 
         ).show()
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     fun reformatDate(date: String) : String {
         val inputFormatter = DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())
         val outputFormatter = DateTimeFormatter.ofPattern("dd MMMM yyyy, EEEE", Locale.getDefault())
@@ -98,21 +94,31 @@ class PlansRepository(private val sharedPreferences: SharedPreferences, private 
         return parsedDate.format(outputFormatter)
     }
 
-    fun setNotes(notes: String, isEditing: Boolean = false) {
+    fun saveNote(note: Note) {
+        var notesListJson =
+            sharedPreferences.getString(KEY_NOTES_LIST, "[]") ?: "[]"
+        val notesList =
+            if (notesListJson.isNotBlank()) Json.decodeFromString<MutableList<Note>>(notesListJson)
+            else mutableListOf()
+
+        val index = notesList.indexOfFirst { it.id == note.id }
+        if (index != -1) {
+            notesList[index] = note
+        }
+        else {
+            notesList.add(note)
+        }
+
+        notesListJson = Json.encodeToString(notesList)
+
         sharedPreferences.edit {
-            putString(KEY_NOTES, notes)
-            if (!isEditing) putBoolean(KEY_HAVE_NOTES, true)
+            putString(KEY_NOTES_LIST, notesListJson)
         }
     }
-    fun getNotes() : String {
-        return sharedPreferences.getString(KEY_NOTES, "") ?: ""
-    }
 
-    fun setHaveNotes(value: Boolean) {
-        sharedPreferences.edit { putBoolean(KEY_HAVE_NOTES, value) }
-    }
-    fun getHaveNotes() : Boolean {
-        return sharedPreferences.getBoolean(KEY_HAVE_NOTES, false)
+    fun getNotesList() : MutableList<Note> {
+        val json = sharedPreferences.getString(KEY_NOTES_LIST, "[]") ?: "[]"
+        return Json.decodeFromString<MutableList<Note>>(json)
     }
 
     fun getPlansList() : MutableList<Pair<String, String>> {

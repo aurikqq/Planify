@@ -1,4 +1,4 @@
-package com.aurikqq.planify
+package com.aurikqq.planify.screens
 
 import android.content.Context
 import androidx.compose.animation.animateContentSize
@@ -10,13 +10,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material3.Button
@@ -24,12 +27,16 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -41,15 +48,18 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.aurikqq.planify.PREFERENCES_NAME
+import com.aurikqq.planify.R
+import com.aurikqq.planify.Repository
 import com.aurikqq.planify.ui.theme.PlanifyTheme
+import com.aurikqq.planify.viewmodels.Note
 import com.aurikqq.planify.viewmodels.NotesScreenViewModel
 import com.aurikqq.planify.viewmodels.NotesScreenViewModelFactory
 
 data class NotesScreenUiState(
-    val notes: String = "",
-    val haveNotes: Boolean = false,
-    val isEditing: Boolean = false,
-    val tempNotes: String = ""
+    val notes: MutableList<Note> = mutableListOf(),
+    val tempNoteTitle: String = "",
+    val tempNote: String = ""
 )
 
 @Composable
@@ -58,7 +68,7 @@ fun NotesScreen(modifier: Modifier = Modifier) {
 
     val viewModel: NotesScreenViewModel = viewModel(
         factory = NotesScreenViewModelFactory(
-            PlansRepository(
+            Repository(
                 context.getSharedPreferences(
                     PREFERENCES_NAME, Context.MODE_PRIVATE
                 ),
@@ -77,63 +87,99 @@ fun NotesScreen(modifier: Modifier = Modifier) {
             .fillMaxSize()
             .imePadding()
     ) {
-        if (uiState.haveNotes) {
-            item {
-                if (!uiState.isEditing) {
-                    Card(
-                        elevation = CardDefaults.cardElevation(0.dp),
-                        modifier = Modifier
-                            .widthIn(max = 800.dp)
-                            .fillMaxWidth()
-                            .defaultMinSize(minHeight = 120.dp)
-                            .shadow(
-                                elevation = 4.dp,
-                                shape = RoundedCornerShape(12.dp),
-                                clip = false
-                            )
-                            .animateContentSize()
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
+        if (uiState.notes.isNotEmpty()) {
+            items(uiState.notes) { note ->
+                Card(
+                    elevation = CardDefaults.cardElevation(0.dp),
+                    modifier = Modifier
+                        .widthIn(max = 800.dp)
+                        .fillMaxWidth()
+                        .defaultMinSize(minHeight = 120.dp)
+                        .shadow(
+                            elevation = 4.dp,
+                            shape = RoundedCornerShape(12.dp),
+                            clip = false
+                        )
+                        .animateContentSize()
+                ) {
+                    var isEditing by remember { mutableStateOf(false) } // human, i remember you're genocides
+
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        if (!isEditing) {
                             Text(
-                                "Вот то, что ты сохранил:",
+                                note.title,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Medium,
                                 modifier = Modifier
                                     .padding(bottom = 8.dp)
                             )
                             Text(
-                                text = uiState.notes,
+                                text = note.text,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
+                        else {
+                            BasicTextField(
+                                value = note.title,
+                                onValueChange = {
+                                    viewModel.onNoteTitleEditingInput(it)
+                                    note.title = it },
+                                textStyle = LocalTextStyle.current.copy(
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                ),
+                                modifier = Modifier
+                                    .padding(bottom = 8.dp)
+                            )
+                            BasicTextField(
+                                value = note.text,
+                                onValueChange = {
+                                    viewModel.onNoteTextEditingInput(it)
+                                    note.text = it },
+                                textStyle = LocalTextStyle.current.copy(
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            )
+                        }
+                        Spacer(modifier = Modifier.size(16.dp))
+
+                        if (!isEditing) {
+                            ElevatedButton(
+                                onClick = { isEditing = true },
+                            ) {
+                                Text("Поменять")
+                            }
+                        }
+                        else {
+                            ElevatedButton(
+                                onClick = {
+                                    isEditing = false
+                                    viewModel.setNote(note)
+                                }
+                            ) {
+                                Text(stringResource(R.string.button_finish_editing))
+                            }
+                        }
                     }
-                } else {
-                    OutlinedTextField(
-                        value = uiState.tempNotes,
-                        onValueChange = { viewModel.onTempNotesInput(it) },
-                        label = { "Изменяй и властвуй..." },
-                        modifier = Modifier
-                            .defaultMinSize(minHeight = 120.dp)
-                            .sizeIn(maxWidth = 800.dp, maxHeight = 600.dp)
-                            .animateItem(placementSpec = spring())
-                    )
                 }
                 Spacer(modifier = Modifier.size(32.dp))
             }
 
             item {
-                if (!uiState.isEditing) {
-                    ElevatedButton(
-                        onClick = { viewModel.startEditing() }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Button(
+                        onClick = {},
+                        enabled = false,
                     ) {
-                        Text(stringResource(R.string.button_edit_plans))
+                        Text("Добавить запись")
                     }
-                } else {
-                    ElevatedButton(
-                        onClick = { viewModel.endEditing() }
-                    ) {
-                        Text(stringResource(R.string.button_finish_editing))
-                    }
+
+                    Text(
+                        "В разработке...",
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = .5f),
+                        fontSize = 14.sp
+                    )
                 }
             }
         } else {
@@ -145,29 +191,68 @@ fun NotesScreen(modifier: Modifier = Modifier) {
                 )
                 Spacer(modifier = Modifier.size(8.dp))
                 Text(
-                    "Постояные планы - раздел, где ты можешь записать что угодно, " +
-                            "и записи не удалятся, пока ты их не изменишь.\n" +
-                            "Тут может быть то, что тебе надо\nзапомнить или сделать не сегодня.",
+                    "Записи - раздел, где ты можешь оставить что угодно, " +
+                            "и сохранённое здесь не удалится.\n" +
+                            "Тут может быть то, что тебе надо\nзапомнить или сделать не сегодня.\n\n" +
+                            "Также, можно делать несколько отдельных записей.\n",
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
                     modifier = Modifier.padding(start = 16.dp)
                 )
+
                 Spacer(modifier = Modifier.size(32.dp))
-                OutlinedTextField(
-                    value = uiState.tempNotes,
-                    onValueChange = { viewModel.onTempNotesInput(it) },
-                    label = { "Что стоит запомнить?" },
+
+                Card(
+                    elevation = CardDefaults.cardElevation(0.dp),
                     modifier = Modifier
+                        .widthIn(max = 800.dp)
+                        .fillMaxWidth()
                         .defaultMinSize(minHeight = 120.dp)
-                        .sizeIn(maxWidth = 800.dp, maxHeight = 600.dp)
-                        .animateItem(placementSpec = spring())
-                )
+                        .shadow(
+                            elevation = 4.dp,
+                            shape = RoundedCornerShape(12.dp),
+                            clip = false
+                        )
+                        .animateContentSize()
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(16.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = uiState.tempNoteTitle,
+                            onValueChange = { viewModel.onNoteTitleInput(it) },
+                            textStyle = LocalTextStyle.current.copy(
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Medium,
+                            ),
+                            placeholder = { Text("Как назвать запись?") },
+                            modifier = Modifier
+                                .height(52.dp)
+                                .defaultMinSize(minWidth = 240.dp)
+                                .animateItem(placementSpec = spring())
+                        )
+
+                        Spacer(modifier = Modifier.size(16.dp))
+
+                        OutlinedTextField(
+                            value = uiState.tempNote,
+                            onValueChange = { viewModel.onNoteTextInput(it) },
+                            placeholder = { Text("Что стоит запомнить?") },
+                            modifier = Modifier
+                                .defaultMinSize(minHeight = 120.dp)
+                                .sizeIn(maxHeight = 800.dp)
+                                .fillMaxWidth()
+                                .animateItem(placementSpec = spring())
+                        )
+                    }
+                }
+
                 Spacer(modifier = Modifier.size(32.dp))
             }
             item {
                 Button(
-                    onClick = { viewModel.setNotes() },
-                    enabled = uiState.tempNotes.isNotBlank(),
+                    onClick = { viewModel.setNote() },
+                    enabled = uiState.tempNote.isNotBlank() && uiState.tempNoteTitle.isNotBlank(),
                     modifier = Modifier.animateItem(placementSpec = spring())
                 ) {
                     Text(stringResource(R.string.button_set_plans))

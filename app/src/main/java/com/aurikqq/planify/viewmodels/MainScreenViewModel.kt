@@ -1,13 +1,11 @@
 package com.aurikqq.planify.viewmodels
 
-import android.os.Build
 import android.widget.Toast
-import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.aurikqq.planify.PlansRepository
 import com.aurikqq.planify.R
+import com.aurikqq.planify.Repository
 import com.aurikqq.planify.screens.PlansScreenUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,9 +18,8 @@ import java.util.Locale
 
 @Suppress("UNCHECKED_CAST")
 class MainScreenViewModelFactory(
-    private val repo: PlansRepository
+    private val repo: Repository
 ) : ViewModelProvider.Factory {
-    @RequiresApi(Build.VERSION_CODES.O)
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(MainScreenViewModel::class.java)) {
             return MainScreenViewModel(repo) as T
@@ -31,8 +28,7 @@ class MainScreenViewModelFactory(
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
-class MainScreenViewModel(private val repo: PlansRepository) : ViewModel() {
+class MainScreenViewModel(private val repo: Repository) : ViewModel() {
     private val _uiState = MutableStateFlow(PlansScreenUiState())
     val uiState: StateFlow<PlansScreenUiState> = _uiState.asStateFlow()
 
@@ -40,7 +36,6 @@ class MainScreenViewModel(private val repo: PlansRepository) : ViewModel() {
         loadInitialData()
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     private fun loadInitialData() {
         viewModelScope.launch {
             val currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern(

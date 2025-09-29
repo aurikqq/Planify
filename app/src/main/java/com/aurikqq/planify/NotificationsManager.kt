@@ -92,15 +92,13 @@ fun createNotificationChannel(context: Context) {
     val CHANNEL_NAME = context.getString(R.string.notifications_channel_name)
     val CHANNEL_DESCRIPTION = context.getString(R.string.notifications_channel_description)
 
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-        val importance = NotificationManager.IMPORTANCE_DEFAULT
-        val channel = NotificationChannel(CHANNEL_ID, CHANNEL_NAME, importance).apply {
-            description = CHANNEL_DESCRIPTION
-        }
-        val notificationManager: NotificationManager =
-            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.createNotificationChannel(channel)
+    val importance = NotificationManager.IMPORTANCE_DEFAULT
+    val channel = NotificationChannel(CHANNEL_ID, CHANNEL_NAME, importance).apply {
+        description = CHANNEL_DESCRIPTION
     }
+    val notificationManager: NotificationManager =
+        context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    notificationManager.createNotificationChannel(channel)
 }
 
 @SuppressLint("MissingPermission")
