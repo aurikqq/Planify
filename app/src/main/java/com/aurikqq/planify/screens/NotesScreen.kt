@@ -6,6 +6,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,16 +23,20 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedButton
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,7 +45,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -59,7 +68,9 @@ import com.aurikqq.planify.viewmodels.NotesScreenViewModelFactory
 data class NotesScreenUiState(
     val notes: MutableList<Note> = mutableListOf(),
     val tempNoteTitle: String = "",
-    val tempNote: String = ""
+    val tempNote: String = "",
+    val isAddingNote: Boolean = false,
+    val isEditing: Boolean = false
 )
 
 @Composable
@@ -78,6 +89,8 @@ fun NotesScreen(modifier: Modifier = Modifier) {
     )
 
     val uiState by viewModel.uiState.collectAsState()
+    val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     LazyColumn(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -131,7 +144,13 @@ fun NotesScreen(modifier: Modifier = Modifier) {
                                 ),
                                 modifier = Modifier
                                     .padding(bottom = 8.dp)
+                                    .fillMaxWidth()
                             )
+
+                            LaunchedEffect(Unit) {
+                                focusRequester.requestFocus()
+                                keyboardController?.show()
+                            }
                             BasicTextField(
                                 value = note.text,
                                 onValueChange = {
@@ -139,26 +158,42 @@ fun NotesScreen(modifier: Modifier = Modifier) {
                                     note.text = it },
                                 textStyle = LocalTextStyle.current.copy(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                ),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(focusRequester)
                             )
                         }
                         Spacer(modifier = Modifier.size(16.dp))
 
-                        if (!isEditing) {
-                            ElevatedButton(
-                                onClick = { isEditing = true },
-                            ) {
-                                Text("Поменять")
-                            }
-                        }
-                        else {
-                            ElevatedButton(
-                                onClick = {
-                                    isEditing = false
-                                    viewModel.setNote(note)
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            if (!isEditing) {
+                                FilledTonalButton(
+                                    onClick = {
+                                        isEditing = true
+                                        viewModel.isEditing(true)
+                                    },
+                                    enabled = !uiState.isEditing && !uiState.isAddingNote
+                                ) {
+                                    Text("Поменять")
                                 }
-                            ) {
-                                Text(stringResource(R.string.button_finish_editing))
+
+                                IconButton(onClick = { viewModel.removeNote(note) }) {
+                                    Icon(Icons.Default.Delete, null)
+                                }
+                            } else {
+                                ElevatedButton(
+                                    onClick = {
+                                        isEditing = false
+                                        viewModel.setNote(note)
+                                        viewModel.isEditing(false)
+                                    }
+                                ) {
+                                    Text(stringResource(R.string.button_finish_editing))
+                                }
                             }
                         }
                     }
@@ -167,19 +202,40 @@ fun NotesScreen(modifier: Modifier = Modifier) {
             }
 
             item {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Button(
-                        onClick = {},
-                        enabled = false,
-                    ) {
-                        Text("Добавить запись")
+                if (!uiState.isAddingNote) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Button(
+                            onClick = { viewModel.isAddingNote(true) },
+                            enabled = !uiState.isEditing
+                        ) {
+                            Text("Добавить запись")
+                        }
                     }
+                }
+                else {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        EmptyNoteCard(uiState, viewModel, Modifier.animateItem(placementSpec = spring()))
 
-                    Text(
-                        "В разработке...",
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = .5f),
-                        fontSize = 14.sp
-                    )
+                        Spacer(Modifier.size(32.dp))
+
+                        Row(horizontalArrangement = Arrangement.SpaceAround, modifier = Modifier.fillMaxWidth()) {
+                            ElevatedButton(
+                                onClick = { viewModel.isAddingNote(false) }
+                            ) {
+                                Text("Отмени")
+                            }
+
+                            Button(
+                                onClick = {
+                                    viewModel.setNote()
+                                    viewModel.isAddingNote(false)
+                                },
+                                enabled = uiState.tempNote.isNotBlank() && uiState.tempNoteTitle.isNotBlank()
+                            ) {
+                                Text(stringResource(R.string.button_add_plans))
+                            }
+                        }
+                    }
                 }
             }
         } else {
@@ -202,50 +258,7 @@ fun NotesScreen(modifier: Modifier = Modifier) {
 
                 Spacer(modifier = Modifier.size(32.dp))
 
-                Card(
-                    elevation = CardDefaults.cardElevation(0.dp),
-                    modifier = Modifier
-                        .widthIn(max = 800.dp)
-                        .fillMaxWidth()
-                        .defaultMinSize(minHeight = 120.dp)
-                        .shadow(
-                            elevation = 4.dp,
-                            shape = RoundedCornerShape(12.dp),
-                            clip = false
-                        )
-                        .animateContentSize()
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxSize().padding(16.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = uiState.tempNoteTitle,
-                            onValueChange = { viewModel.onNoteTitleInput(it) },
-                            textStyle = LocalTextStyle.current.copy(
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Medium,
-                            ),
-                            placeholder = { Text("Как назвать запись?") },
-                            modifier = Modifier
-                                .height(52.dp)
-                                .defaultMinSize(minWidth = 240.dp)
-                                .animateItem(placementSpec = spring())
-                        )
-
-                        Spacer(modifier = Modifier.size(16.dp))
-
-                        OutlinedTextField(
-                            value = uiState.tempNote,
-                            onValueChange = { viewModel.onNoteTextInput(it) },
-                            placeholder = { Text("Что стоит запомнить?") },
-                            modifier = Modifier
-                                .defaultMinSize(minHeight = 120.dp)
-                                .sizeIn(maxHeight = 800.dp)
-                                .fillMaxWidth()
-                                .animateItem(placementSpec = spring())
-                        )
-                    }
-                }
+                EmptyNoteCard(uiState, viewModel, Modifier.animateItem(placementSpec = spring()))
 
                 Spacer(modifier = Modifier.size(32.dp))
             }
@@ -262,10 +275,59 @@ fun NotesScreen(modifier: Modifier = Modifier) {
     }
 }
 
+@Composable
+fun EmptyNoteCard(uiState: NotesScreenUiState, viewModel: NotesScreenViewModel, modifier: Modifier) {
+// modifier cause spring animation is impossible to use outside of lazy column, I guess
+Card(
+    elevation = CardDefaults.cardElevation(0.dp),
+    modifier = Modifier
+        .widthIn(max = 800.dp)
+        .fillMaxWidth()
+        .defaultMinSize(minHeight = 120.dp)
+        .shadow(
+            elevation = 4.dp,
+            shape = RoundedCornerShape(12.dp),
+            clip = false
+        )
+        .animateContentSize()
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        OutlinedTextField(
+            value = uiState.tempNoteTitle,
+            onValueChange = { viewModel.onNoteTitleInput(it) },
+            textStyle = LocalTextStyle.current.copy(
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium,
+            ),
+            placeholder = { Text("Как назвать запись?") },
+            modifier = modifier
+                .height(52.dp)
+                .defaultMinSize(minWidth = 240.dp)
+        )
+
+        Spacer(modifier = Modifier.size(16.dp))
+
+        OutlinedTextField(
+            value = uiState.tempNote,
+            onValueChange = { viewModel.onNoteTextInput(it) },
+            placeholder = { Text("Что стоит запомнить?") },
+            modifier = modifier
+                .defaultMinSize(minHeight = 120.dp)
+                .sizeIn(maxHeight = 800.dp)
+                .fillMaxWidth()
+        )
+    }
+}
+}
+
 @Preview(showSystemUi = true, showBackground = true, locale = "ru")
 @Composable
 fun ConstantPlansPreview() {
-    PlanifyTheme {
-        NotesScreen()
-    }
+PlanifyTheme {
+    NotesScreen()
+}
 }

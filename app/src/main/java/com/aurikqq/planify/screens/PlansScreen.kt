@@ -2,9 +2,7 @@ package com.aurikqq.planify.screens
 
 import android.content.Context
 import android.content.res.Configuration
-import android.os.Build
 import android.util.Log
-import androidx.annotation.RequiresApi
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
@@ -145,7 +143,6 @@ fun DaysListItem(
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun DaysList(
     viewModel: MainScreenViewModel = viewModel(),
@@ -242,7 +239,6 @@ fun reformatDate(date: String): String? {
 // для каждого дня - свои планы
 
 // в истории и списке дней берётся сегодняшняя дата, поэтому в историю пишутся сегодняшние планы на место вчерашних, а в список добавляется сегодняшний день
-@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
@@ -445,7 +441,6 @@ fun MainScreen(
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun DailyPlansScreen(
     uiState: PlansScreenUiState,
@@ -586,7 +581,6 @@ fun DailyPlansScreen(
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Preview(showSystemUi = true, showBackground = true, locale = "ru")
 @Composable
 fun PlansPreview() {

@@ -9,10 +9,12 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -37,6 +39,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -60,6 +63,12 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
+fun isKeyboardOpen() : Boolean {
+    val ime = WindowInsets.ime.getBottom(LocalDensity.current)
+    return ime > 0
+}
+
+@Composable
 fun AppActivity() {
     val navController = rememberNavController()
     val orientation = LocalConfiguration.current.navigation
@@ -75,10 +84,8 @@ fun AppActivity() {
                     start = innerPadding.calculateStartPadding(LayoutDirection.Ltr),
                     top = innerPadding.calculateTopPadding(),
                     end = innerPadding.calculateEndPadding(LayoutDirection.Ltr),
-                    bottom = 0.dp
+                    bottom = if (isKeyboardOpen()) 0.dp else innerPadding.calculateBottomPadding()
                 )
-
-                .fillMaxSize(),
         )
     }
 }

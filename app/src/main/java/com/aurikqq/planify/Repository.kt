@@ -116,6 +116,18 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
         }
     }
 
+    fun removeNote(note: Note) {
+        var notesListJson =
+            sharedPreferences.getString(KEY_NOTES_LIST, "[]") ?: "[]"
+        val notesList = Json.decodeFromString<MutableList<Note>>(notesListJson)
+        notesList.removeAt(notesList.lastIndex)
+        notesListJson = Json.encodeToString(notesList)
+
+        sharedPreferences.edit {
+            putString(KEY_NOTES_LIST, notesListJson)
+        }
+    }
+
     fun getNotesList() : MutableList<Note> {
         val json = sharedPreferences.getString(KEY_NOTES_LIST, "[]") ?: "[]"
         return Json.decodeFromString<MutableList<Note>>(json)

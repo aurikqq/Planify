@@ -87,6 +87,30 @@ class NotesScreenViewModel(private val repo: Repository) : ViewModel() {
     }
     // TODO manage these methods, there's plenty of them and they're small - do they actually have point?
 
+    fun isAddingNote(value: Boolean) {
+        _uiState.update {
+            it.copy(
+                isAddingNote = value
+            )
+        }
+        if (!value) {
+            _uiState.update {
+                it.copy(
+                    tempNoteTitle = "",
+                    tempNote = ""
+                )
+            }
+        }
+    }
+
+    fun isEditing(value: Boolean) {
+        _uiState.update {
+            it.copy(
+                isEditing = value
+            )
+        }
+    }
+
     fun setNote(note: Note = Note()) {
         val note = if(note.id.isBlank()) Note(UUID.randomUUID().toString(), _uiState.value.tempNoteTitle, _uiState.value.tempNote) else note
 
@@ -96,9 +120,24 @@ class NotesScreenViewModel(private val repo: Repository) : ViewModel() {
         _uiState.update {
             it.copy(
                 notes = newNotesList,
+                tempNoteTitle = "",
+                tempNote = ""
             )
         }
 
         repo.sendToast(R.string.toast_set_plans, Toast.LENGTH_SHORT)
+    }
+
+    fun removeNote(note: Note) {
+        repo.removeNote(note)
+        val newNotesList = repo.getNotesList()
+
+        _uiState.update {
+            it.copy(
+                notes = newNotesList,
+            )
+        }
+
+        //repo.sendToast("Удалил!", Toast.LENGTH_SHORT)
     }
 }
