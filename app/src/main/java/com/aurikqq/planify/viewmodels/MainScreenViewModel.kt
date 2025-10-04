@@ -43,7 +43,10 @@ class MainScreenViewModel(private val repo: Repository) : ViewModel() {
             val days = repo.getDaysList()
             val plans = repo.getPlansForDate(currentDate)
             val havePlans = repo.havePlansForDate(currentDate)
+            val tempPlans = repo.getTempPlans()
+            val isEditing = _uiState.value.isPlanEditing
             val isFirstLaunch = repo.getIsFirstLaunch()
+            val isUpdatePopupShown = repo.getIsUpdatePopupShown()
 
             _uiState.update {
                 it.copy (
@@ -51,8 +54,10 @@ class MainScreenViewModel(private val repo: Repository) : ViewModel() {
                     selectedPickerDate = currentDate,
                     days = days,
                     plansForSelectedDate = plans,
+                    tempPlanInput = if (isEditing || !havePlans) tempPlans else "",
                     havePlans = havePlans,
-                    isFirstLaunch = isFirstLaunch
+                    isFirstLaunch = isFirstLaunch,
+                    isUpdatePopupShown = isUpdatePopupShown
                 )
             }
         }
@@ -82,6 +87,8 @@ class MainScreenViewModel(private val repo: Repository) : ViewModel() {
     }
 
     fun onTempPlanInputChange(new: String) {
+        repo.setTempPlans(new)
+
         _uiState.update { it.copy(tempPlanInput = new) }
     }
 
@@ -188,5 +195,19 @@ class MainScreenViewModel(private val repo: Repository) : ViewModel() {
         repo.saveDaysList(currentDaysList)
 
         _uiState.update { it.copy(days = currentDaysList) }
+    }
+
+    fun tempPlans(plans: String) {
+        repo.setTempPlans(plans)
+    }
+
+    fun updatePopupShown() {
+        repo.setIsUpdatePopupShown(true)
+
+        _uiState.update {
+            it.copy(
+                isUpdatePopupShown = true
+            )
+        }
     }
 }

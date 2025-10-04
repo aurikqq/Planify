@@ -44,6 +44,7 @@ android {
 dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(platform(libs.androidx.compose.bom))
+    implementation(platform(libs.okhttp.bom))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -54,12 +55,14 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.kotlinx.serialization.json)
-    implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.material.icons.core)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.navigation.compose)
     implementation(libs.firebase.analytics)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.okhttp)
+    implementation(libs.okhttp3.okhttp)
+    implementation(libs.logging.interceptor)
 
     testImplementation(libs.junit)
 

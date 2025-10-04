@@ -1,7 +1,11 @@
 package com.aurikqq.planify.screens
 
+import android.app.AlarmManager
 import android.content.Context
+import android.content.Intent
 import android.content.res.Configuration
+import android.os.Build
+import android.provider.Settings
 import android.util.Log
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.spring
@@ -30,6 +34,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.EditCalendar
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -64,12 +69,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.aurikqq.planify.AlarmScheduler
 import com.aurikqq.planify.CONSTANT_PLANS_SCREEN
 import com.aurikqq.planify.HISTORY_SCREEN
 import com.aurikqq.planify.NavRail
@@ -106,6 +113,7 @@ data class PlansScreenUiState(
     val isPlanEditing: Boolean = false,
     val tempPlanInput: String = "",
     val isFirstLaunch: Boolean = true,
+    val isUpdatePopupShown: Boolean = false
 )
 
 @Composable
@@ -271,6 +279,46 @@ fun MainScreen(
     createNotificationChannel(context)
     RequestNotificationsPermission()
 
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val alarmManager = ContextCompat.getSystemService(context, AlarmManager::class.java)
+        if (alarmManager?.canScheduleExactAlarms() == false) {
+            Intent().also { intent ->
+                intent.action = Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
+                context.startActivity(intent)
+            }
+        }
+    }
+
+    if (!uiState.isUpdatePopupShown) {
+        AlertDialog(
+            onDismissRequest = { viewModel.updatePopupShown() },
+            title = {
+                Text("Что поменялось в этой версии:")
+            },
+            text = {
+                LazyColumn {
+                    item {
+                        Text(
+                            "- Переработка записей - теперь их может быть сколько угодно одновременно\n" +
+                                    "- Появилась наработка для будущей возможности записывать планы на любые дни\n" +
+                                    "- Архитектура приложения почти полностью переписана (не касается опыта использования, но масштабное изменение кода)\n" +
+                                    "- Аннигилировано несколько багов\n" +
+                                    "- В интерфейсе поменялась пара мелочей\n" +
+                                    "- поменял версию на 0.2.4, а то в прошлый раз забыл(\n" +
+                                    "и, может, что-то ещё, чего я не помню...\n\n" +
+                                    "Стоило бы сделать ещё пару исправлений вроде сохранения введённых, но не запомненных планов, чтобы не терять их, но не хватило времени. Могут быть баги!!"
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.updatePopupShown() }) {
+                    Text("Понял")
+                }
+            }
+        )
+    }
+
     if (uiState.isDatePickerShown) {
         DatePickerDialog(
             onDismissRequest = { viewModel.hideDatePicker() },
@@ -347,6 +395,16 @@ fun MainScreen(
                             Spacer(Modifier.size(8.dp))
                             Text("Изменить список")
                         }
+
+                        Spacer(Modifier.size(32.dp))
+                        Text(
+                            "В будущем можно будет записывать планы на другие дни. " +
+                                    "А пока это просто полурабочий список таких дней. " +
+                                    "Лучше особо ничего не трогать, потому что работает не всё",
+                            textAlign = TextAlign.Center,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                            modifier = Modifier.size(256.dp).padding(8.dp)
+                        )
                     }
                 }
             }) {
@@ -363,7 +421,13 @@ fun MainScreen(
                         DailyPlansScreen(
                             uiState,
                             { viewModel.onTempPlanInputChange(it) },
-                            { viewModel.saveNewPlans() },
+                            {
+                                viewModel.saveNewPlans()
+                                viewModel.tempPlans("")
+                                AlarmScheduler.scheduleRepeatingAlarm(context)
+                                AlarmScheduler.scheduleAlarm(context)
+                                AlarmScheduler.schedulePlansReset(context)
+                            },
                             { viewModel.addPlans() },
                             { viewModel.startEditingPlans() },
                             { viewModel.endEditingPlans() }
@@ -422,7 +486,13 @@ fun MainScreen(
                             DailyPlansScreen(
                                 uiState,
                                 { viewModel.onTempPlanInputChange(it) },
-                                { viewModel.saveNewPlans() },
+                                {
+                                    viewModel.saveNewPlans()
+                                    viewModel.tempPlans("")
+                                    AlarmScheduler.scheduleRepeatingAlarm(context)
+                                    AlarmScheduler.scheduleAlarm(context)
+                                    AlarmScheduler.schedulePlansReset(context)
+                                },
                                 { viewModel.addPlans() },
                                 { viewModel.startEditingPlans() },
                                 { viewModel.endEditingPlans() }

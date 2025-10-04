@@ -120,7 +120,7 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
         var notesListJson =
             sharedPreferences.getString(KEY_NOTES_LIST, "[]") ?: "[]"
         val notesList = Json.decodeFromString<MutableList<Note>>(notesListJson)
-        notesList.removeAt(notesList.lastIndex)
+        notesList.remove(note)
         notesListJson = Json.encodeToString(notesList)
 
         sharedPreferences.edit {
@@ -136,5 +136,34 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
     fun getPlansList() : MutableList<Pair<String, String>> {
         val json = sharedPreferences.getString(KEY_DAILY_PLANS_HISTORY, "[]") ?: "[]"
         return Json.decodeFromString<MutableList<Pair<String, String>>>(json)
+    }
+
+    fun setTempNoteTitle(title: String) {
+        sharedPreferences.edit {
+            putString(KEY_TEMP_NOTE_TITLE, title)
+        }
+    }
+    fun setTempNoteText(text: String) {
+        sharedPreferences.edit {
+            putString(KEY_TEMP_NOTE_TEXT, text)
+        }
+    }
+    fun setTempPlans(plans: String) {
+        sharedPreferences.edit {
+            putString(KEY_TEMP_PLANS, plans)
+        }
+    }
+
+    fun getTempPlans() : String {
+        return sharedPreferences.getString(KEY_TEMP_PLANS, "") ?: ""
+    }
+
+    fun setIsUpdatePopupShown(value: Boolean) {
+        sharedPreferences.edit {
+            putBoolean(IS_UPDATE_POPUP_SHOWN, value)
+        }
+    }
+    fun getIsUpdatePopupShown() : Boolean {
+        return sharedPreferences.getBoolean(IS_UPDATE_POPUP_SHOWN, false)
     }
 }
