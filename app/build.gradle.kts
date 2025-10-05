@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -18,6 +20,17 @@ android {
         versionName = "0.2.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        val localProperties = rootProject.file("local.properties")
+        val props = Properties()
+        if (localProperties.exists()) {
+            props.load(localProperties.inputStream())
+            val githubToken = props.getProperty("GITHUB_TOKEN") ?: ""
+            buildConfigField("String", "GITHUB_TOKEN", "\"$githubToken\"")
+        }
+        else {
+            buildConfigField("String", "GITHUB_TOKEN", "\"\"")
+        }
     }
 
     buildTypes {
@@ -38,6 +51,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

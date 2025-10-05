@@ -86,6 +86,7 @@ import com.aurikqq.planify.R
 import com.aurikqq.planify.Repository
 import com.aurikqq.planify.RequestNotificationsPermission
 import com.aurikqq.planify.TabsBar
+import com.aurikqq.planify.UpdateLabel
 import com.aurikqq.planify.createNotificationChannel
 import com.aurikqq.planify.ui.theme.PlanifyTheme
 import com.aurikqq.planify.viewmodels.MainScreenViewModel
