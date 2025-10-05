@@ -1,8 +1,10 @@
 package com.aurikqq.planify
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -28,6 +30,7 @@ import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.BottomAppBarDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -36,17 +39,17 @@ import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -60,7 +63,10 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.aurikqq.planify.screens.MainScreen
 import com.aurikqq.planify.ui.theme.PlanifyTheme
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 class MainActivity : ComponentActivity() {
@@ -88,7 +94,9 @@ fun AppActivity() {
     val orientation = LocalConfiguration.current.navigation
 
     Scaffold(
-        bottomBar = { if (orientation == Configuration.ORIENTATION_PORTRAIT) BottomBar(navController) },
+        bottomBar = {
+            UpdateLabel()
+            if (orientation == Configuration.ORIENTATION_PORTRAIT) BottomBar(navController) },
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
         MainScreen(
@@ -109,7 +117,7 @@ fun UpdateLabel() {
     val context = LocalContext.current
     var isUpdateAvailable by rememberSaveable { mutableStateOf(false) }
     var isDownloading by rememberSaveable { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
+    var dlProgress by rememberSaveable { mutableFloatStateOf(0f) }
     var apk by rememberSaveable { mutableStateOf<File?>(null) }
 
     LaunchedEffect(Unit) {
@@ -117,21 +125,62 @@ fun UpdateLabel() {
     }
 
     if (isUpdateAvailable) {
-        Button(
-            onClick = {
-                isDownloading = true
-                scope.launch { apk = downloadApk(context) }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(32.dp)
-                .background(MaterialTheme.colorScheme.surface)
-        ) {
-            Text(if (!isDownloading) "Скачать обновление" else "Скачивание...")
+        if (!isDownloading) {
+            if (dlProgress != 100f) {
+                Button(
+                    onClick = {
+                        isDownloading = true
+                        CoroutineScope(Dispatchers.IO).launch {
+                            apk = downloadApk(context) { dlProgress = it }
+                            withContext(Dispatchers.Main) {
+                                isDownloading = false
+                                Toast.makeText(context, "Обновление скачано!", Toast.LENGTH_LONG)
+                                    .show()
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(32.dp)
+                        .background(MaterialTheme.colorScheme.surface)
+                ) {
+                    Text("Скачать обновление")
+                }
+            }
+            else {
+                Button(
+                    onClick = {
+                        installApk(context, apk)
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(32.dp)
+                        .background(MaterialTheme.colorScheme.surface)
+                ) {
+                    Text("Обновить Planify!")
+                }
+            }
+        }
+        else {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(32.dp)
+                    .background(MaterialTheme.colorScheme.surface)
+            ) {
+                Text("Скачивание...")
+                Text("$dlProgress")
+                CircularProgressIndicator(
+                    progress = { dlProgress },
+                )
+            }
         }
     }
-} /*TODO finalize this*/
+}
 
+@SuppressLint("SuspiciousIndentation")
 @Composable
 fun BottomBar(navController: NavController) {
     val currentScreen = navController.currentBackStackEntry?.destination?.route
@@ -270,19 +319,11 @@ fun TabsBar(navController: NavController) {
     }
 }
 
-private suspend fun checkUpdates(context: Context) : Boolean {
+private fun checkUpdates(context: Context) : Boolean {
     val current = getCurrentVersion(context)
     val latest = getLatestVersion()
 
     return isNewVersionAvailable(current!!, latest!!)
-}
-
-private suspend fun downloadUpdate(context: Context) : File {
-    return downloadApk(context)
-}
-
-private fun installUpdate(context: Context, apk: File) {
-    installApk(context, apk)
 }
 
 @Preview

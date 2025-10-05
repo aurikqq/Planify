@@ -2,6 +2,7 @@ package com.aurikqq.planify
 
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.core.content.FileProvider
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -9,7 +10,7 @@ import org.json.JSONObject
 import java.io.File
 import java.io.FileOutputStream
 
-suspend fun getLatestVersion(): String? {
+fun getLatestVersion(): String? {
     val client = OkHttpClient()
     val request = Request.Builder()
         .url("https://api.github.com/repos/aurikqq/Planify/releases/latest")
@@ -22,7 +23,7 @@ suspend fun getLatestVersion(): String? {
     return json.getString("tag_name")
 }
 
-suspend fun downloadApk(context: Context): File {
+fun downloadApk(context: Context, onProgress: (Float) -> Unit): File {
     val url = "https://api.github.com/repos/aurikqq/Planify/releases/latest"
     val client = OkHttpClient()
     val request = Request.Builder()
@@ -31,16 +32,29 @@ suspend fun downloadApk(context: Context): File {
     val response = client.newCall(request).execute()
 
     val apk = File(context.getExternalFilesDir(null), "update.apk")
-    response.body.byteStream().use { input ->
+
+    val body = response.body
+    val contentLength = body.contentLength()
+    var bytesLoaded = 0L
+
+    body.byteStream().use { input ->
         FileOutputStream(apk).use { output ->
-            input.copyTo(output)
+            val buffer = ByteArray(8 * 1024)
+            var bytes = input.read(buffer)
+
+            while(bytes >= 0) {
+                output.write(buffer, 0, bytes)
+                bytesLoaded += bytes
+                onProgress(bytesLoaded.toFloat() / contentLength)
+                bytes = input.read(buffer)
+            }
         }
     }
     return apk
 }
 
-fun installApk(context: Context, apk: File) {
-    val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", apk)
+fun installApk(context: Context, apk: File?) {
+    val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", apk!!)
     val intent = Intent(Intent.ACTION_VIEW).apply {
         setDataAndType(uri, "application/vnd.android.package-archive")
         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
@@ -53,9 +67,9 @@ fun isNewVersionAvailable(currentVersion: String, latestVersion: String): Boolea
     val latest = latestVersion.removePrefix("v").split(".").map { it.toInt() }
 
     for (i in 0 until minOf(current.size, latest.size)) {
-        if (latest[i] > current[i]) return true
-        else return false
+        return latest[i] > current[i]
     }
+    Log.d("UpdateChecker", "Is update available: ${latest.size > current.size}")
     return latest.size > current.size
 }
 
