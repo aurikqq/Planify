@@ -201,12 +201,12 @@ class MainScreenViewModel(private val repo: Repository) : ViewModel() {
         repo.setTempPlans(plans)
     }
 
-    fun updatePopupShown() {
-        repo.setIsUpdatePopupShown(true)
+    fun updatePopupShown(value: Boolean) {
+        repo.setIsUpdatePopupShown(value)
 
         _uiState.update {
             it.copy(
-                isUpdatePopupShown = true
+                isUpdatePopupShown = value
             )
         }
     }

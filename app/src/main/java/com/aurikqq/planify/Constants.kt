@@ -12,7 +12,7 @@ const val KEY_DAILY_PLANS_HISTORY = "daily_plans_history"
 const val KEY_NOTES_LIST = "notes_list"
 const val KEY_DAILY_PLANS_LIST = "daily_plans_list"
 
-const val IS_UPDATE_POPUP_SHOWN = "is_update_popup_shown"
+const val KEY_IS_UPDATE_CHANGELOG_SHOWN = "is_update_changelog_shown"
 
 const val KEY_TEMP_PLANS = "temp_plans"
 const val KEY_TEMP_NOTE_TITLE = "temp_note_title"

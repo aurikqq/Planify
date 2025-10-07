@@ -6,7 +6,7 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
 import android.provider.Settings
-import android.util.Log
+import android.widget.Toast
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
@@ -38,11 +38,13 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
@@ -54,9 +56,15 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -64,8 +72,12 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -86,19 +98,21 @@ import com.aurikqq.planify.R
 import com.aurikqq.planify.Repository
 import com.aurikqq.planify.RequestNotificationsPermission
 import com.aurikqq.planify.TabsBar
-import com.aurikqq.planify.UpdateLabel
+import com.aurikqq.planify.checkUpdates
 import com.aurikqq.planify.createNotificationChannel
+import com.aurikqq.planify.downloadApk
+import com.aurikqq.planify.installApk
 import com.aurikqq.planify.ui.theme.PlanifyTheme
 import com.aurikqq.planify.viewmodels.MainScreenViewModel
 import com.aurikqq.planify.viewmodels.MainScreenViewModelFactory
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeFormatterBuilder
-import java.time.format.DateTimeParseException
-import java.time.temporal.ChronoField
 import java.util.Date
 import java.util.Locale
 
@@ -209,39 +223,39 @@ fun DaysList(
     }
 }
 
-fun reformatDate(date: String): String? {
-    val formatWithYear = DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.getDefault())
-    val formatWithoutYear = DateTimeFormatterBuilder()
-        .parseCaseInsensitive()
-        .appendPattern("d MMMM")
-        .parseDefaulting(ChronoField.YEAR, LocalDate.now().year.toLong())
-        .toFormatter(Locale.getDefault())
-    val formatWithWeekday = DateTimeFormatter.ofPattern("d MMMM, EEE", Locale.getDefault())
-    val outputFormat = DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())
-
-    return try {
-        val date = LocalDate.parse(date, formatWithYear)
-        date.format(outputFormat)
-    }
-    catch (_: DateTimeParseException) {
-        try {
-            val date = LocalDate.parse(date, formatWithoutYear.withLocale(Locale.getDefault()))
-                .withYear(LocalDate.now().year)
-            date.format(outputFormat)
-        }
-        catch (_: DateTimeParseException) {
-            try {
-                val date = LocalDate.parse(date, formatWithWeekday.withLocale(Locale.getDefault()))
-                    .withYear(LocalDate.now().year)
-                date.format(outputFormat)
-            }
-            catch (_: DateTimeParseException) {
-                Log.e("DateReformatting", "Unable to reformat date")
-                null
-            }
-        }
-    }
-}
+//fun reformatDate(date: String): String? {
+//    val formatWithYear = DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.getDefault())
+//    val formatWithoutYear = DateTimeFormatterBuilder()
+//        .parseCaseInsensitive()
+//        .appendPattern("d MMMM")
+//        .parseDefaulting(ChronoField.YEAR, LocalDate.now().year.toLong())
+//        .toFormatter(Locale.getDefault())
+//    val formatWithWeekday = DateTimeFormatter.ofPattern("d MMMM, EEE", Locale.getDefault())
+//    val outputFormat = DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())
+//
+//    return try {
+//        val date = LocalDate.parse(date, formatWithYear)
+//        date.format(outputFormat)
+//    }
+//    catch (_: DateTimeParseException) {
+//        try {
+//            val date = LocalDate.parse(date, formatWithoutYear.withLocale(Locale.getDefault()))
+//                .withYear(LocalDate.now().year)
+//            date.format(outputFormat)
+//        }
+//        catch (_: DateTimeParseException) {
+//            try {
+//                val date = LocalDate.parse(date, formatWithWeekday.withLocale(Locale.getDefault()))
+//                    .withYear(LocalDate.now().year)
+//                date.format(outputFormat)
+//            }
+//            catch (_: DateTimeParseException) {
+//                Log.e("DateReformatting", "Unable to reformat date")
+//                null
+//            }
+//        }
+//    }
+//}
 
 // удаление и перестановка дней
 // если день наступает - он становится сегодняшним, если проходит - идёт в историю
@@ -268,6 +282,7 @@ fun MainScreen(
     val uiState by viewModel.uiState.collectAsState()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    var showUpdateDialog by remember { mutableStateOf(false) }
 
     val datePickerState = rememberDatePickerState(
         selectableDates = object : SelectableDates {
@@ -290,30 +305,40 @@ fun MainScreen(
         }
     }
 
-    if (!uiState.isUpdatePopupShown) {
+    LaunchedEffect(Unit) {
+        if (!uiState.isUpdatePopupShown) {
+            showUpdateDialog = true
+        }
+    }
+
+    if (showUpdateDialog) {
         AlertDialog(
-            onDismissRequest = { viewModel.updatePopupShown() },
+            onDismissRequest = {
+                viewModel.updatePopupShown(true)
+                showUpdateDialog = false
+            },
             title = {
                 Text("Что поменялось в этой версии:")
             },
             text = {
                 LazyColumn {
                     item {
-                        Text(
-                            "- Переработка записей - теперь их может быть сколько угодно одновременно\n" +
-                                    "- Появилась наработка для будущей возможности записывать планы на любые дни\n" +
-                                    "- Архитектура приложения почти полностью переписана (не касается опыта использования, но масштабное изменение кода)\n" +
-                                    "- Аннигилировано несколько багов\n" +
-                                    "- В интерфейсе поменялась пара мелочей\n" +
-                                    "- поменял версию на 0.2.4, а то в прошлый раз забыл(\n" +
-                                    "и, может, что-то ещё, чего я не помню...\n\n" +
-                                    "Стоило бы сделать ещё пару исправлений вроде сохранения введённых, но не запомненных планов, чтобы не терять их, но не хватило времени. Могут быть баги!!"
-                        )
+                        Text(buildAnnotatedString {
+                            append("- Введено автообновление - теперь Planify при запуске проверяет, есть ли новая версия, и, если повезёт ")
+                            withStyle(style = SpanStyle(textDecoration = TextDecoration.LineThrough)) {
+                                append("и я ещё не спятил/спился")
+                            }
+                            append(", предложит обновиться.\n" +
+                                    "- Разные фиксы, может, что-то ещё полезное, хззабыл")
+                        })
                     }
                 }
             },
             confirmButton = {
-                TextButton(onClick = { viewModel.updatePopupShown() }) {
+                TextButton(onClick = {
+                    showUpdateDialog = false
+                    viewModel.updatePopupShown(true)
+                }) {
                     Text("Понял")
                 }
             }
@@ -404,44 +429,48 @@ fun MainScreen(
                                     "Лучше особо ничего не трогать, потому что работает не всё",
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                            modifier = Modifier.size(256.dp).padding(8.dp)
+                            modifier = Modifier
+                                .size(256.dp)
+                                .padding(8.dp)
                         )
                     }
                 }
             }) {
             Column {
-            TabsBar(navController)
-            Surface {
-                NavHost(
-                    navController = navController,
-                    startDestination = PLANS_SCREEN,
-                    modifier = Modifier
-                        .fillMaxSize()
-                ) {
-                    composable(route = PLANS_SCREEN) {
-                        DailyPlansScreen(
-                            uiState,
-                            { viewModel.onTempPlanInputChange(it) },
-                            {
-                                viewModel.saveNewPlans()
-                                viewModel.tempPlans("")
-                                AlarmScheduler.scheduleRepeatingAlarm(context)
-                                AlarmScheduler.scheduleAlarm(context)
-                                AlarmScheduler.schedulePlansReset(context)
-                            },
-                            { viewModel.addPlans() },
-                            { viewModel.startEditingPlans() },
-                            { viewModel.endEditingPlans() }
-                        )
-                    }
-                    composable(route = CONSTANT_PLANS_SCREEN) {
-                        NotesScreen()
-                    }
-                    composable(route = HISTORY_SCREEN) {
-                        HistoryScreen()
+                TabsBar(navController)
+
+                Surface {
+                    NavHost(
+                        navController = navController,
+                        startDestination = PLANS_SCREEN,
+                        modifier = Modifier
+                            .fillMaxSize()
+                    ) {
+                        composable(route = PLANS_SCREEN) {
+                            DailyPlansScreen(
+                                uiState,
+                                { viewModel.onTempPlanInputChange(it) },
+                                {
+                                    viewModel.saveNewPlans()
+                                    viewModel.tempPlans("")
+                                    AlarmScheduler.scheduleRepeatingAlarm(context)
+                                    AlarmScheduler.scheduleAlarm(context)
+                                    AlarmScheduler.schedulePlansReset(context)
+                                },
+                                { viewModel.addPlans() },
+                                { viewModel.startEditingPlans() },
+                                { viewModel.endEditingPlans() }
+                            )
+                        }
+                        composable(route = CONSTANT_PLANS_SCREEN) {
+                            NotesScreen()
+                        }
+                        composable(route = HISTORY_SCREEN) {
+                            HistoryScreen()
+                        }
                     }
                 }
-            } }
+            }
         }
     }
     else {
@@ -507,6 +536,90 @@ fun MainScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun UpdateLabel() {
+    val context = LocalContext.current
+    var isUpdateAvailable by rememberSaveable { mutableStateOf(false) }
+    var isDownloading by rememberSaveable { mutableStateOf(false) }
+    var dlProgress by rememberSaveable { mutableIntStateOf(0) }
+    var apk by rememberSaveable { mutableStateOf<File?>(null) }
+
+    val viewModel: MainScreenViewModel = viewModel(
+        factory = MainScreenViewModelFactory(
+            Repository(
+                context.getSharedPreferences(
+                    PREFERENCES_NAME, Context.MODE_PRIVATE),
+                context
+            )))
+
+    LaunchedEffect(Unit) {
+        isUpdateAvailable = checkUpdates(context)
+    }
+
+    if (isUpdateAvailable) {
+        if (!isDownloading) {
+            if (dlProgress < 100f) {
+                FilledTonalButton(
+                    onClick = {
+                        isDownloading = true
+                        CoroutineScope(Dispatchers.IO).launch {
+                            apk = downloadApk(context) { dlProgress = it.toInt() }
+                            withContext(Dispatchers.Main) {
+                                isDownloading = false
+                                Toast.makeText(context, "Обновление скачано!", Toast.LENGTH_LONG)
+                                    .show()
+                            }
+                        }
+                    },
+                    shape = RoundedCornerShape(0.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(64.dp)
+                        .background(MaterialTheme.colorScheme.surface)
+                ) {
+                    Text("Скачать обновление")
+                }
+            }
+            else {
+                FilledTonalButton(
+                    onClick = {
+                        if (installApk(context, apk)) {
+                            viewModel.updatePopupShown(false)
+                        }
+                    },
+                    shape = RoundedCornerShape(0.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(64.dp)
+                        .background(MaterialTheme.colorScheme.surface)
+                ) {
+                    Text("Обновить Planify!")
+                }
+            }
+        }
+        else {
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(64.dp)
+                    .background(MaterialTheme.colorScheme.secondaryContainer)
+            ) {
+                Text("Скачивание...", color = MaterialTheme.colorScheme.onSecondaryContainer)
+                Spacer(modifier = Modifier.size(32.dp))
+                Text("$dlProgress%", color = MaterialTheme.colorScheme.onSecondaryContainer)
+                Spacer(modifier = Modifier.size(12.dp))
+                CircularProgressIndicator(
+                    progress = { dlProgress / 100f },
+                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    trackColor = MaterialTheme.colorScheme.surface
+                )
             }
         }
     }

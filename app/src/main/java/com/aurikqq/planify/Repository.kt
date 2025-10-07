@@ -160,10 +160,10 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
 
     fun setIsUpdatePopupShown(value: Boolean) {
         sharedPreferences.edit {
-            putBoolean(IS_UPDATE_POPUP_SHOWN, value)
+            putBoolean(KEY_IS_UPDATE_CHANGELOG_SHOWN, value)
         }
     }
     fun getIsUpdatePopupShown() : Boolean {
-        return sharedPreferences.getBoolean(IS_UPDATE_POPUP_SHOWN, false)
+        return sharedPreferences.getBoolean(KEY_IS_UPDATE_CHANGELOG_SHOWN, false)
     }
 }
