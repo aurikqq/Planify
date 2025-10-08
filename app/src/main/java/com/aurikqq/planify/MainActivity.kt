@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -19,6 +18,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Settings
@@ -35,23 +36,34 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.aurikqq.planify.screens.DailyPlansScreen
+import com.aurikqq.planify.screens.HistoryScreen
 import com.aurikqq.planify.screens.MainScreen
+import com.aurikqq.planify.screens.NotesScreen
 import com.aurikqq.planify.screens.UpdateLabel
 import com.aurikqq.planify.ui.theme.PlanifyTheme
+import com.aurikqq.planify.viewmodels.MainScreenViewModel
+import com.aurikqq.planify.viewmodels.MainScreenViewModelFactory
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -211,44 +223,96 @@ fun NavRail(navController: NavController) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TabsBar(navController: NavController) {
-    var selectedTab by rememberSaveable { mutableIntStateOf(PlansScreenTabs.Daily.ordinal) }
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+    val selectedTab = mainScreenTabs.indexOf(currentRoute ?: mainScreenTabs.first())
 
-    PrimaryTabRow(selectedTabIndex = selectedTab) {
-        Tab(
-            selected = selectedTab == PlansScreenTabs.Daily.ordinal,
-            onClick = {
-                navController.navigate(PLANS_SCREEN)
-                selectedTab = PlansScreenTabs.Daily.ordinal
-            },
-            text = { Text("Дневные", overflow = TextOverflow.Ellipsis) }
-        )
-        Tab(
-            selected = selectedTab == PlansScreenTabs.Notes.ordinal,
-            onClick = {
-                navController.navigate(CONSTANT_PLANS_SCREEN)
-                selectedTab = PlansScreenTabs.Notes.ordinal
-            },
-            text = { Text("Записи", overflow = TextOverflow.Ellipsis) }
-        )
-        Tab(
-            selected = selectedTab == PlansScreenTabs.History.ordinal,
-            onClick = {
-                navController.navigate(HISTORY_SCREEN)
-                selectedTab = PlansScreenTabs.History.ordinal
-            },
-            text = { Text("История", overflow = TextOverflow.Ellipsis) }
-        )
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val pagerState = rememberPagerState(pageCount = { mainScreenTabs.size })
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(currentRoute) {
+        val newIndex = mainScreenTabs.indexOf(currentRoute)
+        if (newIndex != -1 && newIndex != pagerState.currentPage) {
+            pagerState.scrollToPage(newIndex)
+        }
+    }
+
+    LaunchedEffect(pagerState.currentPage) {
+        keyboardController?.hide()
+        val newRoute = mainScreenTabs[pagerState.currentPage]
+        if (newRoute != currentRoute) {
+            navController.navigate(newRoute) {
+                launchSingleTop = true
+                restoreState = true
+                popUpTo(navController.graph.startDestinationId) { /*TODO maybe change to saving last 5 screens or like that*/
+                    saveState = true
+                }
+            }
+        }
+    }
+
+    Column {
+        PrimaryTabRow(selectedTabIndex = selectedTab) {
+            Tab(
+                selected = pagerState.currentPage == mainScreenTabs.indexOf(PLANS_SCREEN),
+                onClick = {
+                    if (pagerState.currentPage != mainScreenTabs.indexOf(PLANS_SCREEN)) {
+                        coroutineScope.launch { pagerState.animateScrollToPage(mainScreenTabs.indexOf(PLANS_SCREEN)) }
+                    }
+                },
+                text = { Text("Дневные", overflow = TextOverflow.Ellipsis) }
+            )
+            Tab(
+                selected = pagerState.currentPage == mainScreenTabs.indexOf(NOTES_SCREEN),
+                onClick = {
+                    if (pagerState.currentPage != mainScreenTabs.indexOf(NOTES_SCREEN)) {
+                        coroutineScope.launch { pagerState.animateScrollToPage(mainScreenTabs.indexOf(NOTES_SCREEN)) }
+                    }
+                },
+                text = { Text("Записи", overflow = TextOverflow.Ellipsis) }
+            )
+            Tab(
+                selected = pagerState.currentPage == mainScreenTabs.indexOf(HISTORY_SCREEN),
+                onClick = {
+                    if (pagerState.currentPage != mainScreenTabs.indexOf(HISTORY_SCREEN)) {
+                        coroutineScope.launch { pagerState.animateScrollToPage(mainScreenTabs.indexOf(HISTORY_SCREEN)) }
+                    }
+                },
+                text = { Text("История", overflow = TextOverflow.Ellipsis) }
+            )
+        }
+
+        HorizontalPager(pagerState) { page ->
+            when (mainScreenTabs[page]) {
+                PLANS_SCREEN -> {
+                    val context = LocalContext.current
+                    val parentEntry = remember(navBackStackEntry) {
+                        navController.getBackStackEntry(PLANS_SCREEN)
+                    }
+                    val viewModel: MainScreenViewModel = viewModel(
+                        factory = MainScreenViewModelFactory(
+                            Repository(
+                                context.getSharedPreferences(
+                                    PREFERENCES_NAME, Context.MODE_PRIVATE),
+                                context
+                            )),
+                        viewModelStoreOwner = parentEntry
+                    )
+                    val uiState by viewModel.uiState.collectAsState()
+                    DailyPlansScreen(context, uiState, viewModel)
+                }
+                NOTES_SCREEN -> NotesScreen()
+                HISTORY_SCREEN -> HistoryScreen()
+            }
+        }
     }
 }
 
 suspend fun checkUpdates(context: Context) : Boolean {
-    Log.d("update", "checking")
-
     val current = getCurrentVersion(context)
     val latest = getLatestVersion()
     val result = isNewVersionAvailable(current!!, latest!!)
-    Log.d("UpdateChecker", "Is update available: $result")
-    Log.d("UpdateChecker", "current: $current latest: $latest")
 
     return result
 }

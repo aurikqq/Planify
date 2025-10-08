@@ -77,6 +77,9 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp3.okhttp)
     implementation(libs.logging.interceptor)
+    implementation(libs.androidx.compose.animation)
+    implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.activity)
 
     testImplementation(libs.junit)
 

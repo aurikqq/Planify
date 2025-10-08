@@ -19,6 +19,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Planify"
         android:localeConfig="@xml/locate_config"
+        android:enableOnBackInvokedCallback="true"
         tools:targetApi="33">
         <activity
             android:name=".MainActivity"
