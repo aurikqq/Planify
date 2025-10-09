@@ -80,8 +80,8 @@ import com.aurikqq.planify.checkUpdates
 import com.aurikqq.planify.createNotificationChannel
 import com.aurikqq.planify.downloadApk
 import com.aurikqq.planify.installApk
-import com.aurikqq.planify.viewmodels.MainScreenViewModel
-import com.aurikqq.planify.viewmodels.MainScreenViewModelFactory
+import com.aurikqq.planify.viewmodels.PlansScreenViewModel
+import com.aurikqq.planify.viewmodels.PlansScreenViewModelFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -102,8 +102,8 @@ fun MainScreen(
     val context = LocalContext.current
     val orientation = LocalConfiguration.current.navigation
 
-    val viewModel: MainScreenViewModel = viewModel(
-        factory = MainScreenViewModelFactory(
+    val viewModel: PlansScreenViewModel = viewModel(
+        factory = PlansScreenViewModelFactory(
             Repository(
                 context.getSharedPreferences(
                     PREFERENCES_NAME, Context.MODE_PRIVATE),
@@ -123,7 +123,6 @@ fun MainScreen(
         }
     )
 
-    createNotificationChannel(context)
     RequestNotificationsPermission()
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -366,8 +365,8 @@ fun UpdateLabel() {
     var dlProgress by rememberSaveable { mutableIntStateOf(0) }
     var apk by rememberSaveable { mutableStateOf<File?>(null) }
 
-    val viewModel: MainScreenViewModel = viewModel(
-        factory = MainScreenViewModelFactory(
+    val viewModel: PlansScreenViewModel = viewModel(
+        factory = PlansScreenViewModelFactory(
             Repository(
                 context.getSharedPreferences(
                     PREFERENCES_NAME, Context.MODE_PRIVATE),

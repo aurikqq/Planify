@@ -55,8 +55,9 @@ import androidx.navigation.compose.rememberNavController
 import com.aurikqq.planify.AlarmScheduler
 import com.aurikqq.planify.NavRail
 import com.aurikqq.planify.R
+import com.aurikqq.planify.createNotificationChannel
 import com.aurikqq.planify.ui.theme.PlanifyTheme
-import com.aurikqq.planify.viewmodels.MainScreenViewModel
+import com.aurikqq.planify.viewmodels.PlansScreenViewModel
 
 data class PlansScreenUiState(
     val days: List<Pair<String, String>> = emptyList(),
@@ -110,7 +111,7 @@ fun DaysListItem(
 
 @Composable
 fun DaysList(
-    viewModel: MainScreenViewModel = viewModel(),
+    viewModel: PlansScreenViewModel = viewModel(),
     navController: NavController,
     onDateSelected: (String) -> Unit,
     ) {
@@ -209,7 +210,7 @@ fun DaysList(
 fun DailyPlansScreen(
     context: Context,
     uiState: PlansScreenUiState,
-    viewModel: MainScreenViewModel = viewModel()
+    viewModel: PlansScreenViewModel = viewModel()
 ) {
     LazyColumn(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -290,8 +291,7 @@ fun DailyPlansScreen(
                     onClick = {
                         viewModel.saveNewPlans()
                         viewModel.tempPlans("")
-                        AlarmScheduler.scheduleRepeatingAlarm(context)
-                        AlarmScheduler.scheduleAlarm(context)
+                        createNotificationChannel(context)
                         AlarmScheduler.schedulePlansReset(context)
                     },
                     enabled = uiState.tempPlanInput.isNotBlank(),
