@@ -61,8 +61,8 @@ import com.aurikqq.planify.screens.MainScreen
 import com.aurikqq.planify.screens.NotesScreen
 import com.aurikqq.planify.screens.UpdateLabel
 import com.aurikqq.planify.ui.theme.PlanifyTheme
-import com.aurikqq.planify.viewmodels.MainScreenViewModel
-import com.aurikqq.planify.viewmodels.MainScreenViewModelFactory
+import com.aurikqq.planify.viewmodels.PlansScreenViewModel
+import com.aurikqq.planify.viewmodels.PlansScreenViewModelFactory
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -290,8 +290,8 @@ fun TabsBar(navController: NavController) {
                     val parentEntry = remember(navBackStackEntry) {
                         navController.getBackStackEntry(PLANS_SCREEN)
                     }
-                    val viewModel: MainScreenViewModel = viewModel(
-                        factory = MainScreenViewModelFactory(
+                    val viewModel: PlansScreenViewModel = viewModel(
+                        factory = PlansScreenViewModelFactory(
                             Repository(
                                 context.getSharedPreferences(
                                     PREFERENCES_NAME, Context.MODE_PRIVATE),

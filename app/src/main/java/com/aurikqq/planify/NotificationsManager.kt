@@ -21,22 +21,40 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.util.Calendar
+import java.util.Locale
 
 const val CHANNEL_ID = "planify_channel_id"
 
+/*TODO fix notifs*/
+
 class TimeReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
-        val sharedPreferences = context?.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
-        val plans = sharedPreferences?.getString(KEY_PLANS, null)
+        val sharedPreferences =
+            context?.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+        val repo = Repository(
+            sharedPreferences!!, context)
+        val currentDate = LocalDate.now().format(
+            DateTimeFormatter.ofPattern(
+                "dd_MM_yyyy", Locale.getDefault()
+            )
+        )
 
-        val notificationTitles = listOf(
-        context?.getString(R.string.notification_title_01),
-        context?.getString(R.string.notification_title_02),
-        context?.getString(R.string.notification_title_03))
+        if (repo.havePlansForDate(currentDate)) {
 
-        showPlansNotification(context!!, notificationTitles.random(), plans)
-        AlarmScheduler.scheduleRepeatingAlarm(context)
+            val plans = context.getString(R.string.notification_text) + "\n" + repo.getPlansForDate(currentDate)
+
+            val notificationTitles = listOf(
+                context.getString(R.string.notification_title_01),
+                context.getString(R.string.notification_title_02),
+                context.getString(R.string.notification_title_03)
+            )
+
+            showPlansNotification(context, notificationTitles.random(), plans)
+            AlarmScheduler.scheduleRepeatingAlarm(context)
+        }
     }
 }
 
@@ -109,6 +127,7 @@ object AlarmScheduler {
         )
     }
 
+    @SuppressLint("ShortAlarm", "ScheduleExactAlarm")
     fun scheduleRepeatingAlarm(context: Context) {
         val interval = 2 * 60 * 60 * 1000L
         val intent = Intent(context, TimeReceiver::class.java)
@@ -120,10 +139,9 @@ object AlarmScheduler {
         )
 
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        alarmManager.setRepeating(
+        alarmManager.setExactAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP,
             System.currentTimeMillis() + interval,
-            interval,
             pendingIntent
         )
     }
@@ -172,12 +190,12 @@ object AlarmScheduler {
 }
 
 fun createNotificationChannel(context: Context) {
-    val CHANNEL_NAME = context.getString(R.string.notifications_channel_name)
-    val CHANNEL_DESCRIPTION = context.getString(R.string.notifications_channel_description)
+    val channelName = context.getString(R.string.notifications_channel_name)
+    val channelDescription = context.getString(R.string.notifications_channel_description)
 
     val importance = NotificationManager.IMPORTANCE_DEFAULT
-    val channel = NotificationChannel(CHANNEL_ID, CHANNEL_NAME, importance).apply {
-        description = CHANNEL_DESCRIPTION
+    val channel = NotificationChannel(CHANNEL_ID, channelName, importance).apply {
+        description = channelDescription
     }
     val notificationManager: NotificationManager =
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -211,9 +229,7 @@ fun showPlansNotification(
 }
 
 @SuppressLint("MissingPermission")
-fun showPlansResetNotification(
-    context: Context,
-) {
+fun showPlansResetNotification(context: Context) {
     val resetNotificationTexts = listOf(
         context.getString(R.string.reset_notification_text_01),
         context.getString(R.string.reset_notification_text_02),

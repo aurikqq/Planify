@@ -58,11 +58,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -77,11 +73,10 @@ import com.aurikqq.planify.Repository
 import com.aurikqq.planify.RequestNotificationsPermission
 import com.aurikqq.planify.TabsBar
 import com.aurikqq.planify.checkUpdates
-import com.aurikqq.planify.createNotificationChannel
 import com.aurikqq.planify.downloadApk
 import com.aurikqq.planify.installApk
-import com.aurikqq.planify.viewmodels.MainScreenViewModel
-import com.aurikqq.planify.viewmodels.MainScreenViewModelFactory
+import com.aurikqq.planify.viewmodels.PlansScreenViewModel
+import com.aurikqq.planify.viewmodels.PlansScreenViewModelFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -102,8 +97,8 @@ fun MainScreen(
     val context = LocalContext.current
     val orientation = LocalConfiguration.current.navigation
 
-    val viewModel: MainScreenViewModel = viewModel(
-        factory = MainScreenViewModelFactory(
+    val viewModel: PlansScreenViewModel = viewModel(
+        factory = PlansScreenViewModelFactory(
             Repository(
                 context.getSharedPreferences(
                     PREFERENCES_NAME, Context.MODE_PRIVATE),
@@ -123,7 +118,6 @@ fun MainScreen(
         }
     )
 
-    createNotificationChannel(context)
     RequestNotificationsPermission()
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -154,14 +148,13 @@ fun MainScreen(
             text = {
                 LazyColumn {
                     item {
-                        Text(buildAnnotatedString {
-                            append("- Введено автообновление - теперь Planify при запуске проверяет, есть ли новая версия, и, если повезёт ")
-                            withStyle(style = SpanStyle(textDecoration = TextDecoration.LineThrough)) {
-                                append("и я ещё не спятил/спился")
-                            }
-                            append(", предложит обновиться.\n" +
-                                    "- Разные фиксы, может, что-то ещё полезное, хззабыл")
-                        })
+                        Text("- Навигация теперь на стероидах, можно красиво свайпать экранчики, " +
+                                "кнопка/жест \"Назад\" возвращает к дневным планам, ну и там ещё всякое прикольное.\n" +
+                                "- Починены уведомления (да, всё это время программка должна была кидать напоминания о твоих великих делах, " +
+                                "но я не добавил пару строк кода для этого).\n" +
+                                "    - После обновления может появиться уведомление о сбросе планов - это баг, просто смахни\n" +
+                                "    - Ну и в целом могут быть баги, в таких уведомлениях их сложно отлавливать"
+                        )
                     }
                 }
             },
@@ -366,8 +359,8 @@ fun UpdateLabel() {
     var dlProgress by rememberSaveable { mutableIntStateOf(0) }
     var apk by rememberSaveable { mutableStateOf<File?>(null) }
 
-    val viewModel: MainScreenViewModel = viewModel(
-        factory = MainScreenViewModelFactory(
+    val viewModel: PlansScreenViewModel = viewModel(
+        factory = PlansScreenViewModelFactory(
             Repository(
                 context.getSharedPreferences(
                     PREFERENCES_NAME, Context.MODE_PRIVATE),

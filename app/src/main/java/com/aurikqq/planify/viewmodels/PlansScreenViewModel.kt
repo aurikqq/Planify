@@ -17,18 +17,18 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 @Suppress("UNCHECKED_CAST")
-class MainScreenViewModelFactory(
+class PlansScreenViewModelFactory(
     private val repo: Repository
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(MainScreenViewModel::class.java)) {
-            return MainScreenViewModel(repo) as T
+        if (modelClass.isAssignableFrom(PlansScreenViewModel::class.java)) {
+            return PlansScreenViewModel(repo) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
 
-class MainScreenViewModel(private val repo: Repository) : ViewModel() {
+class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
     private val _uiState = MutableStateFlow(PlansScreenUiState())
     val uiState: StateFlow<PlansScreenUiState> = _uiState.asStateFlow()
 
