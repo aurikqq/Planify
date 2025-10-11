@@ -46,7 +46,6 @@ import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -58,7 +57,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -83,37 +81,42 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.Date
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen(
+    context: Context,
+    viewModel: PlansScreenViewModel,
+    uiState: PlansScreenUiState,
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
     val orientation = LocalConfiguration.current.navigation
-
-    val viewModel: PlansScreenViewModel = viewModel(
-        factory = PlansScreenViewModelFactory(
-            Repository(
-                context.getSharedPreferences(
-                    PREFERENCES_NAME, Context.MODE_PRIVATE),
-                context
-            )))
-
-    val uiState by viewModel.uiState.collectAsState()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var showUpdateDialog by remember { mutableStateOf(false) }
 
+    val chosenDates = mutableListOf<String>()
+    for (date in uiState.days) { chosenDates.add(date.second) }
+
     val datePickerState = rememberDatePickerState(
         selectableDates = object : SelectableDates {
             override fun isSelectableDate(utcTimeMillis: Long): Boolean {
-                return utcTimeMillis > Date().time
+                val selectedDate = Instant.ofEpochMilli(utcTimeMillis)
+                    .atZone(ZoneId.systemDefault())
+                    .toLocalDate()
+                val today = LocalDate.now()
+
+                val isFuture = selectedDate.isAfter(today)
+                val isChosen = chosenDates.contains(selectedDate.format(
+                    DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())
+                ))
+
+                return isFuture && !isChosen
             }
         }
     )
@@ -170,6 +173,11 @@ fun MainScreen(
     }
 
     if (uiState.isDatePickerShown) {
+        val selectedDate = datePickerState.selectedDateMillis?.let {
+            Instant.ofEpochMilli(it)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate()
+        }
         DatePickerDialog(
             onDismissRequest = { viewModel.hideDatePicker() },
             confirmButton = {
@@ -181,18 +189,27 @@ fun MainScreen(
                                 .toLocalDate()
 
                             val dayDate = date.format(
-                                DateTimeFormatter.ofPattern("d MMMM", Locale.getDefault())
-                            ) /*TODO*/ // make different patterns depending on date
+                                DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())
+                            )
 
-                            viewModel.changeDateSelectedInPicker(dayDate)
+                            viewModel.selectDate(dayDate)
                             viewModel.getDateFromPicker(dayDate)
                             viewModel.hideDatePicker()
                         }
-                    }
+                    },
+                    enabled = if (uiState.days.isNotEmpty()) { !chosenDates.any {
+                        LocalDate.parse(it, DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())) == selectedDate } }
+                        else true
                 ) {
                     Text("Готово")
                 }
             },
+
+            /*TODO*/ // delete icon is overlaid with selected box
+            /*TODO*/ // change day's item name depending on date
+            /*TODO*/ // fix sorting
+            /*TODO*/ // check if the plans are removed along with the day
+
             dismissButton = {
                 TextButton(
                     onClick = { viewModel.hideDatePicker() }
@@ -216,16 +233,16 @@ fun MainScreen(
                         .fillMaxHeight()
                         .background(MaterialTheme.colorScheme.surface)
                 ) {
-                    Column {
-                        DaysList(
-                            viewModel,
-                            navController,
-                            {
-                                viewModel.selectDate(it)
-                                scope.launch { drawerState.close() }
-                            },
-                        )
-
+                    DaysList(
+                        viewModel,
+                        navController,
+                        {
+                            viewModel.selectDate(it)
+                            scope.launch { drawerState.close() }
+                        }
+                    )
+                    Column(verticalArrangement = Arrangement.Bottom,
+                        modifier = Modifier.padding(start = 4.dp, bottom = 12.dp)) {
                         Spacer(Modifier.size(12.dp))
 
                         TextButton(onClick = { viewModel.showDatePicker() }) {
@@ -245,23 +262,12 @@ fun MainScreen(
                             Spacer(Modifier.size(8.dp))
                             Text("Изменить список")
                         }
-
-                        Spacer(Modifier.size(32.dp))
-                        Text(
-                            "В будущем можно будет записывать планы на другие дни. " +
-                                    "А пока это просто полурабочий список таких дней. " +
-                                    "Лучше особо ничего не трогать, потому что работает не всё",
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                            modifier = Modifier
-                                .size(256.dp)
-                                .padding(8.dp)
-                        )
                     }
                 }
             }) {
             Column {
-                TabsBar(navController)
+                DayLabel(uiState, drawerState, scope)
+                TabsBar(context, navController, viewModel, uiState)
 
                 Surface {
                     NavHost(
@@ -323,7 +329,7 @@ fun MainScreen(
             }
 
             Column {
-                TabsBar(navController)
+                TabsBar(context, navController, viewModel, uiState)
 
                 Surface {
                     NavHost(

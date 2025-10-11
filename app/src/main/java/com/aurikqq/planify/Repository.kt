@@ -31,31 +31,39 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
     }
 
     fun savePlansForDate(date: String, plans: String) {
-        val dailyPlansHistory =
-            sharedPreferences.getString(KEY_DAILY_PLANS_HISTORY, "[]") ?: "[]"
-        val plansList =
-            if (dailyPlansHistory.isNotBlank()) Json.decodeFromString<MutableList<Pair<String, String>>>(dailyPlansHistory)
-            else mutableListOf()
-
-        try {
-            if (plansList[plansList.lastIndex].second == reformatDate(date)) {
-                plansList[plansList.lastIndex] = plansList.last().copy(
-                    first = plans
+        val now = LocalDate.now()
+        val formattedDate = LocalDate.parse(date, DateTimeFormatter.ofPattern("dd_MM_yyyy"))
+        if (now.isAfter(formattedDate) || now.isEqual(formattedDate)) {
+            val dailyPlansHistory =
+                sharedPreferences.getString(KEY_DAILY_PLANS_HISTORY, "[]") ?: "[]"
+            val plansList =
+                if (dailyPlansHistory.isNotBlank()) Json.decodeFromString<MutableList<Pair<String, String>>>(
+                    dailyPlansHistory
                 )
-            }
-            else {
+                else mutableListOf()
+
+            try {
+                if (plansList[plansList.lastIndex].second == reformatDate(date)) {
+                    plansList[plansList.lastIndex] = plansList.last().copy(
+                        first = plans
+                    )
+                } else {
+                    plansList.add(Pair(plans, reformatDate(date)))
+                }
+            } catch (_: IndexOutOfBoundsException) {
                 plansList.add(Pair(plans, reformatDate(date)))
             }
-        } catch (_: IndexOutOfBoundsException) {
-            plansList.add(Pair(plans, reformatDate(date)))
-        }
 
-        val jsonPlansList = Json.encodeToString(plansList)
+            val jsonPlansList = Json.encodeToString(plansList)
+
+            sharedPreferences.edit {
+                {putString(KEY_DAILY_PLANS_HISTORY, jsonPlansList)}
+            }
+        }
 
         sharedPreferences.edit {
             putString("${KEY_PLANS}_$date", plans)
             putBoolean("${KEY_HAVE_PLANS}_$date", true)
-            putString(KEY_DAILY_PLANS_HISTORY, jsonPlansList)
             putBoolean(KEY_IS_FIRST_LAUNCH, false)
         }
     }
@@ -147,7 +155,7 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
         sharedPreferences.edit {
             putString(KEY_TEMP_NOTE_TEXT, text)
         }
-    }
+    } /*TODO*/
     fun setTempPlans(plans: String) {
         sharedPreferences.edit {
             putString(KEY_TEMP_PLANS, plans)

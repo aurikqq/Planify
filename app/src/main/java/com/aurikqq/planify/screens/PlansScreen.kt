@@ -7,6 +7,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -26,9 +27,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DrawerState
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -40,24 +44,32 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.aurikqq.planify.AlarmScheduler
 import com.aurikqq.planify.NavRail
 import com.aurikqq.planify.R
 import com.aurikqq.planify.createNotificationChannel
-import com.aurikqq.planify.ui.theme.PlanifyTheme
 import com.aurikqq.planify.viewmodels.PlansScreenViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
+import java.util.Locale
 
 data class PlansScreenUiState(
     val days: List<Pair<String, String>> = emptyList(),
@@ -76,6 +88,7 @@ data class PlansScreenUiState(
 
 @Composable
 fun DaysListItem(
+    uiState: PlansScreenUiState,
     date: String,
     isSelected: Boolean = false,
     isDaysListEditing: Boolean = false,
@@ -88,18 +101,42 @@ fun DaysListItem(
         modifier = Modifier
             .height(64.dp)
             .fillMaxWidth()
-            .background(
-                if (isSelected) MaterialTheme.colorScheme.secondaryContainer
-                else MaterialTheme.colorScheme.background
-            )
+            .background(MaterialTheme.colorScheme.background)
             .clickable(onClick = onClick)
     ) {
-        Text(
-            text = date,
-            color = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer
+        if (isSelected) {
+            val color = MaterialTheme.colorScheme.secondaryContainer
+            Row (
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(color.copy(alpha = 0.75f))
+                    .fillMaxSize()
+                    .padding(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(4.dp)
+                        .height(36.dp)
+                        .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(50))
+                )
+                Text(
+                    text = date,
+                    color = if (uiState.days.isNotEmpty()) MaterialTheme.colorScheme.onSecondaryContainer
                     else MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(start = 16.dp)
-        )
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(start = 16.dp)
+                )
+            }
+        }
+        else {
+            Text(
+                text = date,
+                color = if (uiState.days.isNotEmpty()) MaterialTheme.colorScheme.onSecondaryContainer
+                else MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(start = 16.dp)
+            )
+        }
 
         if (isDaysListEditing) {
             TextButton(onClick = onRemove) {
@@ -113,10 +150,16 @@ fun DaysListItem(
 fun DaysList(
     viewModel: PlansScreenViewModel = viewModel(),
     navController: NavController,
-    onDateSelected: (String) -> Unit,
-    ) {
+    onDateSelected: (String) -> Unit
+) {
     val uiState by viewModel.uiState.collectAsState()
     val orientation = LocalConfiguration.current.navigation
+
+    for (day in uiState.days) {
+        if (day.second == uiState.currentDate) {
+            viewModel.removeDay(day)
+        }
+    }
 
     Column(modifier = Modifier
         .width(256.dp)
@@ -151,60 +194,34 @@ fun DaysList(
 
             LazyColumn {
                 item {
-                    DaysListItem("сегодня", uiState.currentDate == uiState.selectedPickerDate, onClick = { onDateSelected(uiState.currentDate) })
+                    DaysListItem(uiState, "сегодня", uiState.currentDate == uiState.selectedPickerDate, onClick = { onDateSelected(uiState.currentDate) })
                 }
                 items(uiState.days) { day ->
                     val selected = day.second == uiState.selectedPickerDate
-                    DaysListItem(day.second, selected, uiState.isDaysListEditing,
+                    val format = DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())
+                    val date = LocalDate.parse(day.second, format)
+                        .format(DateTimeFormatter.ofPattern("d MMMM", Locale.getDefault()))
+
+                    DaysListItem(uiState, date, selected, uiState.isDaysListEditing,
                         {
+                            if (uiState.days.size != 1) {
+                                if (uiState.selectedPickerDate == day.second) {
+                                    onDateSelected(uiState.days[uiState.days.indexOf(day) - 1].second)
+                                }
+                            }
+                            else {
+                                viewModel.setIsDaysListEditing()
+                                onDateSelected(uiState.currentDate)
+                            }
                             viewModel.removeDay(day)
                         },
-                        { onDateSelected(day.second) })
+                        { onDateSelected(day.second) }
+                    )
                 }
             }
         }
     }
 }
-
-//fun reformatDate(date: String): String? {
-//    val formatWithYear = DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.getDefault())
-//    val formatWithoutYear = DateTimeFormatterBuilder()
-//        .parseCaseInsensitive()
-//        .appendPattern("d MMMM")
-//        .parseDefaulting(ChronoField.YEAR, LocalDate.now().year.toLong())
-//        .toFormatter(Locale.getDefault())
-//    val formatWithWeekday = DateTimeFormatter.ofPattern("d MMMM, EEE", Locale.getDefault())
-//    val outputFormat = DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())
-//
-//    return try {
-//        val date = LocalDate.parse(date, formatWithYear)
-//        date.format(outputFormat)
-//    }
-//    catch (_: DateTimeParseException) {
-//        try {
-//            val date = LocalDate.parse(date, formatWithoutYear.withLocale(Locale.getDefault()))
-//                .withYear(LocalDate.now().year)
-//            date.format(outputFormat)
-//        }
-//        catch (_: DateTimeParseException) {
-//            try {
-//                val date = LocalDate.parse(date, formatWithWeekday.withLocale(Locale.getDefault()))
-//                    .withYear(LocalDate.now().year)
-//                date.format(outputFormat)
-//            }
-//            catch (_: DateTimeParseException) {
-//                Log.e("DateReformatting", "Unable to reformat date")
-//                null
-//            }
-//        }
-//    }
-//}
-
-// удаление и перестановка дней
-// если день наступает - он становится сегодняшним, если проходит - идёт в историю
-// для каждого дня - свои планы
-
-// в истории и списке дней берётся сегодняшняя дата, поэтому в историю пишутся сегодняшние планы на место вчерашних, а в список добавляется сегодняшний день
 
 @Composable
 fun DailyPlansScreen(
@@ -348,10 +365,42 @@ fun DailyPlansScreen(
     }
 }
 
-@Preview(showSystemUi = true, showBackground = true, locale = "ru")
 @Composable
-fun PlansPreview() {
-    PlanifyTheme {
-        MainScreen(navController = rememberNavController())
+fun DayLabel(uiState: PlansScreenUiState, drawerState: DrawerState, scope: CoroutineScope) {
+    var day: String
+    try {
+        day = LocalDate.parse(uiState.selectedPickerDate,
+            DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault()))
+            .format(DateTimeFormatter.ofPattern("d MMMM", Locale.getDefault()))
+    }
+    catch (_: DateTimeParseException) {
+        day = uiState.selectedPickerDate
+    }
+
+    val color = ButtonDefaults.textButtonColors().contentColor
+
+    Row(verticalAlignment = Alignment.Top, modifier = Modifier
+        .fillMaxWidth()
+        .padding(start = 8.dp)
+    ) {
+        TextButton(onClick = { scope.launch { drawerState.open() } }
+        ) {
+            Icon(Icons.Default.Menu, null)
+            Spacer(modifier = Modifier.size(16.dp))
+            Text(
+                text = day,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .drawBehind {
+                        drawRoundRect(
+                            color,
+                            topLeft = Offset(0f, size.height + 4.dp.toPx()),
+                            size = Size(size.width, 3.dp.toPx()),
+                            cornerRadius = CornerRadius(50f, 50f)
+                        )
+                    }
+            )
+        }
     }
 }

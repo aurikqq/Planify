@@ -78,14 +78,6 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
         }
     }
 
-    fun changeDateSelectedInPicker(date: String) {
-        _uiState.update {
-            it.copy (
-                selectedPickerDate = date,
-            )
-        }
-    }
-
     fun onTempPlanInputChange(new: String) {
         repo.setTempPlans(new)
 
@@ -178,7 +170,8 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
 
         repo.addDateFromPicker(date)
 
-        _uiState.update { it.copy(days = currentDaysList)}
+        _uiState.update { it.copy(days = currentDaysList.sortedBy { date ->
+            LocalDate.parse(date.second, DateTimeFormatter.ofPattern("dd_MM_yyyy")) })}
     }
 
     fun setIsDaysListEditing() {

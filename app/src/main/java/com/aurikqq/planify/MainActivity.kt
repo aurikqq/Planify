@@ -28,12 +28,14 @@ import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.BottomAppBarDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -59,6 +61,7 @@ import com.aurikqq.planify.screens.DailyPlansScreen
 import com.aurikqq.planify.screens.HistoryScreen
 import com.aurikqq.planify.screens.MainScreen
 import com.aurikqq.planify.screens.NotesScreen
+import com.aurikqq.planify.screens.PlansScreenUiState
 import com.aurikqq.planify.screens.UpdateLabel
 import com.aurikqq.planify.ui.theme.PlanifyTheme
 import com.aurikqq.planify.viewmodels.PlansScreenViewModel
@@ -86,8 +89,19 @@ fun isKeyboardOpen() : Boolean {
 
 @Composable
 fun AppActivity() {
+    val context = LocalContext.current
     val navController = rememberNavController()
     val orientation = LocalConfiguration.current.navigation
+
+    val viewModel: PlansScreenViewModel = viewModel(
+        factory = PlansScreenViewModelFactory(
+            Repository(
+                context.getSharedPreferences(
+                    PREFERENCES_NAME, Context.MODE_PRIVATE),
+                context
+            )))
+
+    val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(
         bottomBar = {
@@ -99,6 +113,9 @@ fun AppActivity() {
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
         MainScreen(
+            context,
+            viewModel,
+            uiState,
             navController = navController,
             modifier = Modifier
                 .padding(
@@ -222,7 +239,7 @@ fun NavRail(navController: NavController) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TabsBar(navController: NavController) {
+fun TabsBar(context: Context, navController: NavController, viewModel: PlansScreenViewModel, uiState: PlansScreenUiState) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val selectedTab = mainScreenTabs.indexOf(currentRoute ?: mainScreenTabs.first())
@@ -253,7 +270,17 @@ fun TabsBar(navController: NavController) {
     }
 
     Column {
-        PrimaryTabRow(selectedTabIndex = selectedTab) {
+        PrimaryTabRow(selectedTabIndex = selectedTab,
+            contentColor = TabRowDefaults.secondaryContentColor,
+            indicator = {
+                TabRowDefaults.PrimaryIndicator(
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    width = 32.dp,
+                    modifier = Modifier
+                        .tabIndicatorOffset(selectedTab)
+                )
+            }
+        ) {
             Tab(
                 selected = pagerState.currentPage == mainScreenTabs.indexOf(PLANS_SCREEN),
                 onClick = {
@@ -286,20 +313,6 @@ fun TabsBar(navController: NavController) {
         HorizontalPager(pagerState) { page ->
             when (mainScreenTabs[page]) {
                 PLANS_SCREEN -> {
-                    val context = LocalContext.current
-                    val parentEntry = remember(navBackStackEntry) {
-                        navController.getBackStackEntry(PLANS_SCREEN)
-                    }
-                    val viewModel: PlansScreenViewModel = viewModel(
-                        factory = PlansScreenViewModelFactory(
-                            Repository(
-                                context.getSharedPreferences(
-                                    PREFERENCES_NAME, Context.MODE_PRIVATE),
-                                context
-                            )),
-                        viewModelStoreOwner = parentEntry
-                    )
-                    val uiState by viewModel.uiState.collectAsState()
                     DailyPlansScreen(context, uiState, viewModel)
                 }
                 NOTES_SCREEN -> NotesScreen()
