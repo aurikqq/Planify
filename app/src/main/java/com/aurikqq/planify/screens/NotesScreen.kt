@@ -277,50 +277,50 @@ fun NotesScreen(modifier: Modifier = Modifier) {
 @Composable
 fun EmptyNoteCard(uiState: NotesScreenUiState, viewModel: NotesScreenViewModel, modifier: Modifier) {
 // modifier cause spring animation is impossible to use outside of lazy column, I guess
-Card(
-    elevation = CardDefaults.cardElevation(0.dp),
-    modifier = Modifier
-        .widthIn(max = 800.dp)
-        .fillMaxWidth()
-        .defaultMinSize(minHeight = 120.dp)
-        .shadow(
-            elevation = 4.dp,
-            shape = RoundedCornerShape(12.dp),
-            clip = false
-        )
-        .animateContentSize()
-) {
-    Column(
+    Card(
+        elevation = CardDefaults.cardElevation(0.dp),
         modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
+            .widthIn(max = 800.dp)
+            .fillMaxWidth()
+            .defaultMinSize(minHeight = 120.dp)
+            .shadow(
+                elevation = 4.dp,
+                shape = RoundedCornerShape(12.dp),
+                clip = false
+            )
+            .animateContentSize()
     ) {
-        OutlinedTextField(
-            value = uiState.tempNoteTitle,
-            onValueChange = { viewModel.onNoteTitleInput(it) },
-            textStyle = LocalTextStyle.current.copy(
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Medium,
-            ),
-            placeholder = { Text("Как назвать запись?") },
-            modifier = modifier
-                .height(52.dp)
-                .defaultMinSize(minWidth = 240.dp)
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            OutlinedTextField(
+                value = uiState.tempNoteTitle,
+                onValueChange = { viewModel.onNoteTitleInput(it) },
+                textStyle = LocalTextStyle.current.copy(
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium,
+                ),
+                placeholder = { Text("Как назвать запись?") },
+                modifier = modifier
+                    .height(52.dp)
+                    .defaultMinSize(minWidth = 240.dp)
+            )
 
-        Spacer(modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.size(16.dp))
 
-        OutlinedTextField(
-            value = uiState.tempNote,
-            onValueChange = { viewModel.onNoteTextInput(it) },
-            placeholder = { Text("Что стоит запомнить?") },
-            modifier = modifier
-                .defaultMinSize(minHeight = 120.dp)
-                .sizeIn(maxHeight = 800.dp)
-                .fillMaxWidth()
-        )
+            OutlinedTextField(
+                value = uiState.tempNote,
+                onValueChange = { viewModel.onNoteTextInput(it) },
+                placeholder = { Text("Что стоит запомнить?") },
+                modifier = modifier
+                    .defaultMinSize(minHeight = 120.dp)
+                    .sizeIn(maxHeight = 800.dp)
+                    .fillMaxWidth()
+            )
+        }
     }
-}
 }
 
 @Preview(showSystemUi = true, showBackground = true, locale = "ru")

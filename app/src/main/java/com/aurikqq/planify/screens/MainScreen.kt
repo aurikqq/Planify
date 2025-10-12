@@ -57,7 +57,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -67,6 +70,7 @@ import com.aurikqq.planify.HISTORY_SCREEN
 import com.aurikqq.planify.NOTES_SCREEN
 import com.aurikqq.planify.PLANS_SCREEN
 import com.aurikqq.planify.PREFERENCES_NAME
+import com.aurikqq.planify.R
 import com.aurikqq.planify.Repository
 import com.aurikqq.planify.RequestNotificationsPermission
 import com.aurikqq.planify.TabsBar
@@ -151,12 +155,13 @@ fun MainScreen(
             text = {
                 LazyColumn {
                     item {
-                        Text("- Навигация теперь на стероидах, можно красиво свайпать экранчики, " +
-                                "кнопка/жест \"Назад\" возвращает к дневным планам, ну и там ещё всякое прикольное.\n" +
-                                "- Починены уведомления (да, всё это время программка должна была кидать напоминания о твоих великих делах, " +
-                                "но я не добавил пару строк кода для этого).\n" +
-                                "    - После обновления может появиться уведомление о сбросе планов - это баг, просто смахни\n" +
-                                "    - Ну и в целом могут быть баги, в таких уведомлениях их сложно отлавливать"
+                        Text("• Готов список дней - теперь можно распланировать наперёд любой день.\n" +
+                                "      - Планы для каждого дня отдельные, сами дни в любой момент можно добавить или удалить\n" +
+                                "      - Планы на будущее не сохраняются в историю (зачем в истории будущее...), пока этот день не пройдёт\n" +
+                                "      - То, что было сохранено на конкретный день, останется, когда этот день наступит - об этом напомнит уведомление\n" +
+                                "      - Ну и, естественно, интерфейсик красивый постарался сделать\n\n" +
+                                "• Выбранная в списке дата показывается сверху.\n\n" +
+                                "• Куча разных фиксов, доработки в интерфейсе, улучшение кода, бе-бе-бе..."
                         )
                     }
                 }
@@ -205,11 +210,6 @@ fun MainScreen(
                 }
             },
 
-            /*TODO*/ // delete icon is overlaid with selected box
-            /*TODO*/ // change day's item name depending on date
-            /*TODO*/ // fix sorting
-            /*TODO*/ // check if the plans are removed along with the day
-
             dismissButton = {
                 TextButton(
                     onClick = { viewModel.hideDatePicker() }
@@ -227,22 +227,55 @@ fun MainScreen(
             drawerState = drawerState,
             modifier = modifier.fillMaxSize(),
             drawerContent = {
-                Column(
-                    verticalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .background(MaterialTheme.colorScheme.surface)
+                Column(modifier = Modifier
+                    .fillMaxHeight()
+                    .background(MaterialTheme.colorScheme.surface)
                 ) {
-                    DaysList(
-                        viewModel,
-                        navController,
-                        {
-                            viewModel.selectDate(it)
-                            scope.launch { drawerState.close() }
+                    Row (
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.Start,
+                        modifier = Modifier
+                            .padding(start = 16.dp, top = 8.dp, bottom = 16.dp)
+                            .size(256.dp, 32.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.icon_with_top),
+                            contentDescription = null,
+                            modifier = Modifier.size(28.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.size(8.dp))
+                        Text(
+                            text = "Planify",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    LazyColumn(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        item {
+                            DaysList(
+                                viewModel,
+                                navController,
+                                {
+                                    viewModel.selectDate(it)
+                                    scope.launch {
+                                        drawerState.close()
+                                        viewModel.setIsDaysListEditing(false)
+                                    }
+                                }
+                            )
                         }
-                    )
-                    Column(verticalArrangement = Arrangement.Bottom,
-                        modifier = Modifier.padding(start = 4.dp, bottom = 12.dp)) {
+                    }
+
+                    Column(
+                        verticalArrangement = Arrangement.Bottom,
+                        modifier = Modifier
+                            .padding(start = 4.dp, bottom = 12.dp)
+                    ) {
                         Spacer(Modifier.size(12.dp))
 
                         TextButton(onClick = { viewModel.showDatePicker() }) {
@@ -254,7 +287,7 @@ fun MainScreen(
                             Text("Добавить день")
                         }
 
-                        TextButton(onClick = { viewModel.setIsDaysListEditing() }) {
+                        TextButton(onClick = { viewModel.setIsDaysListEditing(!uiState.isDaysListEditing) }) {
                             Icon(
                                 Icons.Default.EditCalendar,
                                 null,
@@ -264,7 +297,8 @@ fun MainScreen(
                         }
                     }
                 }
-            }) {
+            }
+        ) {
             Column {
                 DayLabel(uiState, drawerState, scope)
                 TabsBar(context, navController, viewModel, uiState)
@@ -306,8 +340,11 @@ fun MainScreen(
                     navController,
                     {
                         viewModel.selectDate(it)
-                        scope.launch { drawerState.close() }
-                    },
+                        scope.launch {
+                            drawerState.close()
+                            viewModel.setIsDaysListEditing(false)
+                        }
+                    }
                 )
                 Spacer(Modifier.size(12.dp))
                 TextButton(onClick = { viewModel.showDatePicker() }) {
@@ -414,7 +451,7 @@ fun UpdateLabel() {
                         .height(64.dp)
                         .background(MaterialTheme.colorScheme.surface)
                 ) {
-                    Text("Обновить Planify!")
+                    Text("Нажми, чтобы обновить Planify!")
                 }
             }
         }

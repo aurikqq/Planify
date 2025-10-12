@@ -67,6 +67,14 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
             putBoolean(KEY_IS_FIRST_LAUNCH, false)
         }
     }
+
+    fun removePlansForDate(date: String) {
+        sharedPreferences.edit {
+            remove("${KEY_PLANS}_$date")
+            remove("${KEY_HAVE_PLANS}_$date")
+        }
+    }
+
     fun getIsFirstLaunch(): Boolean {
         return sharedPreferences.getBoolean(KEY_IS_FIRST_LAUNCH, true)
     }

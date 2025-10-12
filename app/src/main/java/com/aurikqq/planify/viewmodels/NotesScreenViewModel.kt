@@ -55,6 +55,7 @@ class NotesScreenViewModel(private val repo: Repository) : ViewModel() {
     }
 
     fun onNoteTextInput(input: String) {
+        repo.setTempNoteText(input)
         _uiState.update {
             it.copy(
                 tempNote = input
@@ -79,6 +80,7 @@ class NotesScreenViewModel(private val repo: Repository) : ViewModel() {
     }
 
     fun onNoteTitleInput(input: String) {
+        repo.setTempNoteTitle(input)
         _uiState.update {
             it.copy(
                 tempNoteTitle = input

@@ -52,7 +52,8 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
                 it.copy (
                     currentDate = currentDate,
                     selectedPickerDate = currentDate,
-                    days = days,
+                    days = days.sortedBy { date ->
+                        LocalDate.parse(date.second, DateTimeFormatter.ofPattern("dd_MM_yyyy")) },
                     plansForSelectedDate = plans,
                     tempPlanInput = if (isEditing || !havePlans) tempPlans else "",
                     havePlans = havePlans,
@@ -174,10 +175,10 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
             LocalDate.parse(date.second, DateTimeFormatter.ofPattern("dd_MM_yyyy")) })}
     }
 
-    fun setIsDaysListEditing() {
+    fun setIsDaysListEditing(value: Boolean) {
         _uiState.update {
             it.copy(
-                isDaysListEditing = !_uiState.value.isDaysListEditing
+                isDaysListEditing = value
             )
         }
     }
@@ -185,9 +186,11 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
     fun removeDay(day: Pair<String, String>) {
         val currentDaysList = _uiState.value.days.toMutableList()
         currentDaysList.remove(day)
+        repo.removePlansForDate(day.second)
         repo.saveDaysList(currentDaysList)
 
-        _uiState.update { it.copy(days = currentDaysList) }
+        _uiState.update { it.copy(days = currentDaysList.sortedBy { date ->
+            LocalDate.parse(date.second, DateTimeFormatter.ofPattern("dd_MM_yyyy")) }) }
     }
 
     fun tempPlans(plans: String) {

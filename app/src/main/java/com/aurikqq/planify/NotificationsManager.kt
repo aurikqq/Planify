@@ -28,8 +28,6 @@ import java.util.Locale
 
 const val CHANNEL_ID = "planify_channel_id"
 
-/*TODO fix notifs*/
-
 class TimeReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
         val sharedPreferences =
@@ -230,11 +228,31 @@ fun showPlansNotification(
 
 @SuppressLint("MissingPermission")
 fun showPlansResetNotification(context: Context) {
-    val resetNotificationTexts = listOf(
-        context.getString(R.string.reset_notification_text_01),
-        context.getString(R.string.reset_notification_text_02),
-        context.getString(R.string.reset_notification_text_03)
+    val sharedPreferences =
+        context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+    val repo = Repository(
+        sharedPreferences!!, context)
+    val currentDate = LocalDate.now().format(
+        DateTimeFormatter.ofPattern(
+            "dd_MM_yyyy", Locale.getDefault()
+        )
     )
+    val plans = repo.getPlansForDate(currentDate)
+
+    val resetNotificationTexts =
+        if (plans == "")
+            listOf(
+                context.getString(R.string.reset_notification_text_01),
+                context.getString(R.string.reset_notification_text_02),
+                context.getString(R.string.reset_notification_text_03)
+            )
+        else
+            listOf(
+                "Вчерашние планы сброшены. На сегодня ты планировал:\n$plans",
+                "Вчерашние планы позабыты. А на сегодня у тебя это:\n$plans",
+                "Вчерашние планы бесследно исчезли. А из сегодняшних у тебя...\n$plans"
+            )
+
 
     val intent = Intent(context, MainActivity::class.java).apply {
         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK

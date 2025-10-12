@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -50,8 +49,8 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -69,6 +68,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
+import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 data class PlansScreenUiState(
@@ -104,43 +104,41 @@ fun DaysListItem(
             .background(MaterialTheme.colorScheme.background)
             .clickable(onClick = onClick)
     ) {
-        if (isSelected) {
-            val color = MaterialTheme.colorScheme.secondaryContainer
-            Row (
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(color.copy(alpha = 0.75f))
-                    .fillMaxSize()
-                    .padding(12.dp)
-            ) {
+        val color = MaterialTheme.colorScheme.secondaryContainer
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .clip(if (isSelected) RoundedCornerShape(16.dp) else RoundedCornerShape(0.dp))
+                .background(if (isSelected) color.copy(alpha = 0.75f) else Color.Transparent)
+                .fillMaxWidth(if (isDaysListEditing) 0.75f else 1f)
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            if (isSelected) {
                 Box(
                     modifier = Modifier
                         .width(4.dp)
                         .height(36.dp)
                         .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(50))
                 )
-                Text(
-                    text = date,
-                    color = if (uiState.days.isNotEmpty()) MaterialTheme.colorScheme.onSecondaryContainer
-                    else MaterialTheme.colorScheme.onBackground,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.padding(start = 16.dp)
-                )
             }
-        }
-        else {
+
             Text(
                 text = date,
-                color = if (uiState.days.isNotEmpty()) MaterialTheme.colorScheme.onSecondaryContainer
+                color = if (uiState.days.isNotEmpty())
+                    MaterialTheme.colorScheme.onSecondaryContainer
                 else MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(start = 16.dp)
+                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                modifier = Modifier.padding(start = if (isSelected) 16.dp else 0.dp)
             )
         }
 
         if (isDaysListEditing) {
-            TextButton(onClick = onRemove) {
-                Icon(Icons.Default.Close, null)
+            TextButton(
+                onClick = onRemove,
+                modifier = Modifier.padding(end = 4.dp)
+            ) {
+                Icon(Icons.Default.Close, contentDescription = null)
             }
         }
     }
@@ -150,7 +148,7 @@ fun DaysListItem(
 fun DaysList(
     viewModel: PlansScreenViewModel = viewModel(),
     navController: NavController,
-    onDateSelected: (String) -> Unit
+    onDateSelected: (String) -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val orientation = LocalConfiguration.current.navigation
@@ -164,43 +162,42 @@ fun DaysList(
     Column(modifier = Modifier
         .width(256.dp)
     ) {
-        Row(
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.Start,
-            modifier = Modifier
-                .padding(start = 16.dp, top = 8.dp, bottom = 16.dp)
-                .size(256.dp, 32.dp)
-                .background(MaterialTheme.colorScheme.surface)
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.icon_with_top),
-                contentDescription = null,
-                modifier = Modifier.size(28.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.size(8.dp))
-            Text(
-                text = "Planify",
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
-
         Row {
             if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
                 NavRail(navController)
             }
 
-            LazyColumn {
-                item {
-                    DaysListItem(uiState, "сегодня", uiState.currentDate == uiState.selectedPickerDate, onClick = { onDateSelected(uiState.currentDate) })
-                }
-                items(uiState.days) { day ->
+            Column {
+                DaysListItem(uiState, "сегодня", uiState.currentDate == uiState.selectedPickerDate,
+                    onClick = { onDateSelected(uiState.currentDate) })
+
+                for (day in uiState.days) {
                     val selected = day.second == uiState.selectedPickerDate
                     val format = DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())
-                    val date = LocalDate.parse(day.second, format)
-                        .format(DateTimeFormatter.ofPattern("d MMMM", Locale.getDefault()))
+
+                    val itemDate = LocalDate.parse(day.second, format)
+                    val currentDate = LocalDate.now()
+                    val difference = ChronoUnit.DAYS.between(currentDate, itemDate)
+                    val date: String
+
+                    if (difference != 1L) {
+                        val outputFormat =
+                            if (difference in 2..7) DateTimeFormatter.ofPattern(
+                                "d MMMM, E",
+                                Locale.getDefault()
+                            )
+                            else if (currentDate.year == itemDate.year) DateTimeFormatter.ofPattern(
+                                "d MMMM",
+                                Locale.getDefault()
+                            )
+                            else DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.getDefault())
+
+                        date = LocalDate.parse(day.second, format)
+                            .format(outputFormat)
+                    }
+                    else {
+                        date = "завтра"
+                    }
 
                     DaysListItem(uiState, date, selected, uiState.isDaysListEditing,
                         {
@@ -210,7 +207,7 @@ fun DaysList(
                                 }
                             }
                             else {
-                                viewModel.setIsDaysListEditing()
+                                viewModel.setIsDaysListEditing(false)
                                 onDateSelected(uiState.currentDate)
                             }
                             viewModel.removeDay(day)
