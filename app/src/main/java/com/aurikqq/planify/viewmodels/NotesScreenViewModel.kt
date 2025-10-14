@@ -19,7 +19,8 @@ import java.util.UUID
 data class Note(
     val id: String = "",
     var title: String = "",
-    var text: String = ""
+    var text: String = "",
+    var isExpanded: Boolean = true
 )
 
 @Suppress("UNCHECKED_CAST")
@@ -127,7 +128,7 @@ class NotesScreenViewModel(private val repo: Repository) : ViewModel() {
             )
         }
 
-        repo.sendToast(R.string.toast_set_plans, Toast.LENGTH_SHORT)
+        /*TODO*/ // repo.sendToast(R.string.toast_set_plans, Toast.LENGTH_SHORT)
     }
 
     fun removeNote(note: Note) {

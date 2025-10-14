@@ -80,6 +80,7 @@ dependencies {
     implementation(libs.androidx.compose.animation)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.activity)
+    implementation(libs.androidx.compose.animation.core)
 
     testImplementation(libs.junit)
 

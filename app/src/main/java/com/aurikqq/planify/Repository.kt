@@ -2,6 +2,7 @@ package com.aurikqq.planify
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.core.content.edit
@@ -57,7 +58,7 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
             val jsonPlansList = Json.encodeToString(plansList)
 
             sharedPreferences.edit {
-                {putString(KEY_DAILY_PLANS_HISTORY, jsonPlansList)}
+                { putString(KEY_DAILY_PLANS_HISTORY, jsonPlansList) }
             }
         }
 
@@ -72,6 +73,24 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
         sharedPreferences.edit {
             remove("${KEY_PLANS}_$date")
             remove("${KEY_HAVE_PLANS}_$date")
+        }
+    }
+
+    fun removeFromHistory(date: String) {
+        val dailyPlansHistory =
+            sharedPreferences.getString(KEY_DAILY_PLANS_HISTORY, "[]") ?: "[]"
+        val plansList = Json.decodeFromString<MutableList<Pair<String, String>>>(dailyPlansHistory)
+        val newDate = reformatHistoryDate(date)
+        plansList.removeIf { it.second == date }
+
+        val jsonPlansList = Json.encodeToString(plansList)
+        sharedPreferences.edit {
+            putString(KEY_DAILY_PLANS_HISTORY, jsonPlansList)
+        }
+
+        sharedPreferences.edit {
+            remove("${KEY_PLANS}_$newDate")
+            remove("${KEY_HAVE_PLANS}_$newDate")
         }
     }
 
@@ -105,6 +124,14 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
     fun reformatDate(date: String) : String {
         val inputFormatter = DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())
         val outputFormatter = DateTimeFormatter.ofPattern("dd MMMM yyyy, EEEE", Locale.getDefault())
+
+        val parsedDate = LocalDate.parse(date, inputFormatter)
+        return parsedDate.format(outputFormatter)
+    }
+
+    fun reformatHistoryDate(date: String) : String {
+        val inputFormatter = DateTimeFormatter.ofPattern("dd MMMM yyyy, EEEE", Locale.getDefault())
+        val outputFormatter = DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())
 
         val parsedDate = LocalDate.parse(date, inputFormatter)
         return parsedDate.format(outputFormatter)
@@ -151,6 +178,7 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
 
     fun getPlansList() : MutableList<Pair<String, String>> {
         val json = sharedPreferences.getString(KEY_DAILY_PLANS_HISTORY, "[]") ?: "[]"
+        Log.d("u", "${Json.decodeFromString<MutableList<Pair<String, String>>>(json)}")
         return Json.decodeFromString<MutableList<Pair<String, String>>>(json)
     }
 

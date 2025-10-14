@@ -1,8 +1,15 @@
 package com.aurikqq.planify.screens
 
 import android.content.Context
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -24,6 +31,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -44,6 +52,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -112,23 +121,58 @@ fun NotesScreen(modifier: Modifier = Modifier) {
                             shape = RoundedCornerShape(12.dp),
                             clip = false
                         )
-                        .animateContentSize()
+                        .animateContentSize(spring())
                 ) {
                     var isEditing by remember { mutableStateOf(false) } // human, i remember you're genocides
+                    var isExpanded by remember { mutableStateOf(note.isExpanded) }
+                    val deg by animateFloatAsState(if (isExpanded) 0f else 180f)
 
                     Column(modifier = Modifier.padding(16.dp)) {
                         if (!isEditing) {
-                            Text(
-                                note.title,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Medium,
-                                modifier = Modifier
-                                    .padding(bottom = 8.dp)
-                            )
-                            Text(
-                                text = note.text,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Row (
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    note.title,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier
+                                        .padding(bottom = 8.dp)
+                                )
+                                IconButton(
+                                    onClick = {
+                                        note.isExpanded = !note.isExpanded
+                                        viewModel.setNote(note)
+                                        isExpanded = !isExpanded
+                                    },
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.KeyboardArrowDown, null,
+                                        modifier = Modifier
+                                            .rotate(deg)
+                                            .animateItem()
+                                    )
+                                }
+                            }
+                            AnimatedVisibility(
+                                visible = isExpanded,
+                                enter = expandVertically (
+                                    expandFrom = Alignment.Top,
+                                    animationSpec = tween()
+                                ) + fadeIn(),
+                                exit = shrinkVertically(
+                                    shrinkTowards = Alignment.Top,
+                                    animationSpec = tween()
+                                ) + fadeOut()
+                            ) {
+                                Text(
+                                    text = note.text,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                         else {
                             BasicTextField(
@@ -166,21 +210,25 @@ fun NotesScreen(modifier: Modifier = Modifier) {
                         Spacer(modifier = Modifier.size(16.dp))
 
                         Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
+                            horizontalArrangement = if (isExpanded) Arrangement.SpaceBetween else Arrangement.End,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             if (!isEditing) {
-                                FilledTonalButton(
-                                    onClick = {
-                                        isEditing = true
-                                        viewModel.isEditing(true)
-                                    },
-                                    enabled = !uiState.isEditing && !uiState.isAddingNote
-                                ) {
-                                    Text("Поменять")
-                                }
+                                if (isExpanded)
+                                    FilledTonalButton(
+                                        onClick = {
+                                            isEditing = true
+                                            viewModel.isEditing(true)
+                                        },
+                                        enabled = !uiState.isEditing && !uiState.isAddingNote
+                                    ) {
+                                        Text("Поменять")
+                                    }
 
-                                IconButton(onClick = { viewModel.removeNote(note) }) {
+                                IconButton(
+                                    onClick = { viewModel.removeNote(note) },
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
                                     Icon(Icons.Default.Delete, null)
                                 }
                             } else {

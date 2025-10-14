@@ -1,8 +1,15 @@
 package com.aurikqq.planify.screens
 
 import android.content.Context
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.foundation.clickable
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -16,13 +23,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -71,7 +81,8 @@ fun HistoryScreen() {
     ) {
         if (uiState.plansList.isNotEmpty()) {
             items(uiState.plansList.reversed()) { plan ->
-                var isCardExtended by remember { mutableStateOf(plan == uiState.plansList.last()) }
+                var isCardExpanded by remember { mutableStateOf(plan == uiState.plansList.last()) }
+                val deg by animateFloatAsState(if (isCardExpanded) 180f else 0f)
                 Card(
                     elevation = CardDefaults.cardElevation(0.dp),
                     modifier = Modifier
@@ -81,35 +92,60 @@ fun HistoryScreen() {
                             shape = RoundedCornerShape(12.dp),
                             clip = false
                         )
-                        .animateContentSize()
+                        .animateContentSize(spring())
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(
                             horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
                                 text = plan.second,
-                                fontSize = 18.sp,
+                                fontSize = 20.sp,
                                 fontWeight = FontWeight.Medium,
                                 modifier = Modifier
                                     .padding(bottom = 8.dp)
                             )
-
-                            Icon(
-                                imageVector = Icons.Default.KeyboardArrowDown,
-                                null,
-                                modifier = Modifier
-                                    .rotate(if (isCardExtended) 180f else 0f)
-                                    .clickable(onClick = { isCardExtended = !isCardExtended })
-                                    .animateItem()
-                            )
+                            IconButton(
+                                onClick = { isCardExpanded = !isCardExpanded },
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.KeyboardArrowDown,
+                                    null,
+                                    modifier = Modifier
+                                        .rotate(deg)
+                                        .animateItem()
+                                )
+                            }
                         }
-                        if (isCardExtended) {
+                        AnimatedVisibility(
+                            visible = isCardExpanded,
+                            enter = expandVertically (
+                                expandFrom = Alignment.Top,
+                                animationSpec = tween()
+                            ) + fadeIn(),
+                            exit = shrinkVertically(
+                                shrinkTowards = Alignment.Top,
+                                animationSpec = tween()
+                            ) + fadeOut()
+                        ) {
                             Text(
                                 text = plan.first,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                        }
+
+                        Row (horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+                            IconButton(
+                                onClick = {
+                                    viewModel.removeFromHistory(plan.second)
+                                    uiState.plansList.remove(plan) },
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Icon(Icons.Default.Delete, null)
+                            }
                         }
                     }
                 }
