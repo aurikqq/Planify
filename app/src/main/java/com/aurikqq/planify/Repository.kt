@@ -210,4 +210,34 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
     fun getIsUpdatePopupShown() : Boolean {
         return sharedPreferences.getBoolean(KEY_IS_UPDATE_CHANGELOG_SHOWN, false)
     }
+
+    fun plansNotificationsEnabled(value: Boolean) {
+        sharedPreferences.edit {
+            putBoolean(PLANS_NOTIFICATIONS_ENABLED, value)
+        }
+    }
+    fun resetNotificationsEnabled(value: Boolean) {
+        sharedPreferences.edit {
+            putBoolean(RESET_NOTIFICATIONS_ENABLED, value)
+        }
+    }
+    fun notificationsCooldown(time: Float) {
+        sharedPreferences.edit {
+            putFloat(PLANS_NOTIFICATIONS_COOLDOWN, time)
+        }
+    }
+//    fun daysListPlacement(side: Int) {
+//        sharedPreferences.edit {
+//            putInt(DAYS_LIST_PLACEMENT, side)
+//        }
+//    }
+    fun getPlansNotificationsEnabled() : Boolean {
+        return sharedPreferences.getBoolean(PLANS_NOTIFICATIONS_ENABLED, true)
+    }
+    fun getResetNotificationsEnabled() : Boolean {
+        return sharedPreferences.getBoolean(RESET_NOTIFICATIONS_ENABLED, true)
+    }
+    fun getPlansNotificationsCooldown() : Float {
+        return sharedPreferences.getFloat(PLANS_NOTIFICATIONS_COOLDOWN, 2f)
+    }
 }

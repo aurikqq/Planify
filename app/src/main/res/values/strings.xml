@@ -8,7 +8,7 @@
     <string name="toast_added_plans">Added!</string>
     <string name="button_add_plans">Add things</string>
     <string name="bottom_text_have_plans">Great! Planify remembered\nyour plans for today.\nNow you\'re gonna get notified about them every 2 hours.\n\nYou can add anything to your plans easily -\njust write it above.</string>
-    <string name="bottom_text_first_launch">Welcome!\nHere you can write all your plans for today - from the most significant to minor ones.\n\nAfter that, Planify will remind you about them every 2 hours. And, of course, you can change plans later!</string>
+    <string name="bottom_text_first_launch">Welcome! Here you can write all your plans for today - from the most significant to minor ones. After that, Planify will remind you about them every 2 hours. And, of course, you can change plans later!</string>
     <string name="bottom_text_no_plans">Yesterday is over, and there\'s a new amazing day ahead.\n\nTime to think about your plans for today -\nor give yourself a break.</string>
     <string name="notification_title_01">Hey! You have great things planned</string>
     <string name="notification_title_02">Hey! Refresh your plans in memory</string>

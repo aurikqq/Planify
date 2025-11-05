@@ -2,8 +2,18 @@ package com.aurikqq.planify.screens
 
 import android.content.Context
 import android.content.res.Configuration
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.EaseOutExpo
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -25,7 +35,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -34,6 +46,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -59,6 +73,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.aurikqq.planify.AlarmScheduler
+import com.aurikqq.planify.HISTORY_SCREEN
 import com.aurikqq.planify.NavRail
 import com.aurikqq.planify.R
 import com.aurikqq.planify.createNotificationChannel
@@ -83,7 +98,9 @@ data class PlansScreenUiState(
     val isPlanEditing: Boolean = false,
     val tempPlanInput: String = "",
     val isFirstLaunch: Boolean = true,
-    val isUpdatePopupShown: Boolean = false
+    val isUpdatePopupShown: Boolean = false,
+    val plansNotificationsEnabled: Boolean = true,
+    val resetNotificationsEnabled: Boolean = true
 )
 
 @Composable
@@ -226,19 +243,15 @@ fun DailyPlansScreen(
     uiState: PlansScreenUiState,
     viewModel: PlansScreenViewModel = viewModel()
 ) {
+    val top by animateDpAsState(if (uiState.havePlans) 24.dp else 96.dp, tween())
     LazyColumn(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = if (uiState.havePlans) Arrangement.Top else Arrangement.Center,
-        contentPadding = if (uiState.havePlans) PaddingValues(
-            start = 24.dp,
-            top = 96.dp,
-            end = 24.dp,
-            bottom = 32.dp
-        )
-        else PaddingValues(start = 24.dp, top = 32.dp, end = 24.dp),
+        contentPadding = PaddingValues(start = 24.dp, top = top, end = 24.dp, bottom = 32.dp),
         modifier = Modifier
             .fillMaxSize()
             .imePadding()
+            .animateContentSize(tween())
     ) {
         if (uiState.havePlans) {
             item {
@@ -254,7 +267,7 @@ fun DailyPlansScreen(
                         )
                         .animateContentSize()
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    Column(modifier = Modifier.padding(16.dp).animateItem(tween())) {
                         Text(
                             text = stringResource(R.string.plans_card_title),
                             fontSize = 18.sp,
@@ -280,7 +293,7 @@ fun DailyPlansScreen(
                     modifier = Modifier
                         .defaultMinSize(minHeight = 120.dp)
                         .sizeIn(maxWidth = 800.dp, maxHeight = 600.dp)
-                        .animateItem(placementSpec = spring()),
+                        .animateItem(placementSpec = tween(easing = EaseOutExpo)),
                 )
             } else {
                 OutlinedTextField(
@@ -296,7 +309,7 @@ fun DailyPlansScreen(
                     modifier = Modifier
                         .defaultMinSize(minHeight = 120.dp)
                         .sizeIn(maxWidth = 800.dp, maxHeight = 600.dp)
-                        .animateItem(placementSpec = spring()),
+                        .animateItem(tween(easing = EaseOutExpo)),
                 )
             }
             Spacer(modifier = Modifier.size(16.dp))
@@ -309,7 +322,7 @@ fun DailyPlansScreen(
                         AlarmScheduler.schedulePlansReset(context)
                     },
                     enabled = uiState.tempPlanInput.isNotBlank(),
-                    modifier = Modifier.animateItem(placementSpec = spring())
+                    modifier = Modifier.animateItem(placementSpec = tween())
                 ) {
                     Text(text = stringResource(R.string.button_set_plans))
                 }
@@ -318,7 +331,7 @@ fun DailyPlansScreen(
                     ElevatedButton(
                         onClick = { viewModel.addPlans() },
                         enabled = uiState.tempPlanInput.isNotBlank() && !uiState.isPlanEditing,
-                        modifier = Modifier.animateItem(placementSpec = spring())
+                        modifier = Modifier.animateItem(placementSpec = tween())
                     ) {
                         Text(text = stringResource(R.string.button_add_plans))
                     }
@@ -328,14 +341,14 @@ fun DailyPlansScreen(
                             onClick = { viewModel.endEditingPlans() },
                             enabled = uiState.tempPlanInput.isNotBlank(),
                             modifier = Modifier
-                                .animateItem(placementSpec = spring())
+                                .animateItem(placementSpec = tween())
                         ) {
                             Text(stringResource(R.string.button_finish_editing))
                         }
                     } else {
                         ElevatedButton(
                             onClick = { viewModel.startEditingPlans() },
-                            modifier = Modifier.animateItem(placementSpec = spring())
+                            modifier = Modifier.animateItem(placementSpec = tween())
                         ) {
                             Text(stringResource(R.string.button_edit_plans))
                         }
@@ -356,14 +369,20 @@ fun DailyPlansScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
                 modifier = Modifier
                     .width(260.dp)
-                    .animateItem(placementSpec = spring())
+                    .animateItem(tween(easing = EaseOutExpo))
             )
         }
     }
 }
 
 @Composable
-fun DayLabel(uiState: PlansScreenUiState, drawerState: DrawerState, scope: CoroutineScope) {
+fun TopBar(
+    uiState: PlansScreenUiState,
+    drawerState: DrawerState,
+    scope: CoroutineScope,
+    isHistoryShown: Boolean,
+    onHistoryClick: () -> Unit
+) {
     var day: String
     try {
         day = LocalDate.parse(uiState.selectedPickerDate,
@@ -376,9 +395,11 @@ fun DayLabel(uiState: PlansScreenUiState, drawerState: DrawerState, scope: Corou
 
     val color = ButtonDefaults.textButtonColors().contentColor
 
-    Row(verticalAlignment = Alignment.Top, modifier = Modifier
-        .fillMaxWidth()
-        .padding(start = 8.dp)
+    Row(verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 8.dp)
     ) {
         TextButton(onClick = { scope.launch { drawerState.open() } }
         ) {
@@ -398,6 +419,33 @@ fun DayLabel(uiState: PlansScreenUiState, drawerState: DrawerState, scope: Corou
                         )
                     }
             )
+        }
+        IconButton(
+            onClick = {
+                onHistoryClick()
+            },
+            shape = RoundedCornerShape(12.dp),
+            colors = IconButtonDefaults.iconButtonColors(
+                contentColor = animateColorAsState(targetValue = if (isHistoryShown) MaterialTheme.colorScheme.onSecondaryContainer
+                                                                    else MaterialTheme.colorScheme.primary).value
+            ),
+            modifier = Modifier.padding(end = 16.dp)
+        ) {
+            AnimatedVisibility(visible = !isHistoryShown,
+                enter = fadeIn() + expandHorizontally(expandFrom = Alignment.Start),
+                exit = fadeOut() + shrinkHorizontally(shrinkTowards = Alignment.Start)
+            ) {
+                Icon(
+                    Icons.Default.History,
+                    null,
+                )
+            }
+            AnimatedVisibility(visible = isHistoryShown) {
+                Icon(
+                    Icons.Default.ArrowBackIosNew,
+                    null,
+                )
+            }
         }
     }
 }

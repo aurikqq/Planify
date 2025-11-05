@@ -4,11 +4,17 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.calculateEndPadding
@@ -20,8 +26,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Checklist
+import androidx.compose.material.icons.filled.EditNote
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.BottomAppBar
@@ -41,31 +49,35 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.aurikqq.planify.screens.DailyPlansScreen
-import com.aurikqq.planify.screens.HistoryScreen
 import com.aurikqq.planify.screens.MainScreen
 import com.aurikqq.planify.screens.NotesScreen
 import com.aurikqq.planify.screens.PlansScreenUiState
+import com.aurikqq.planify.screens.SettingsScreen
 import com.aurikqq.planify.screens.UpdateLabel
 import com.aurikqq.planify.ui.theme.PlanifyTheme
 import com.aurikqq.planify.viewmodels.PlansScreenViewModel
 import com.aurikqq.planify.viewmodels.PlansScreenViewModelFactory
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -111,19 +123,38 @@ fun AppActivity() {
         },
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
-        MainScreen(
-            context,
-            viewModel,
-            uiState,
-            navController = navController,
-            modifier = Modifier
-                .padding(
-                    start = innerPadding.calculateStartPadding(LayoutDirection.Ltr),
-                    top = innerPadding.calculateTopPadding(),
-                    end = innerPadding.calculateEndPadding(LayoutDirection.Ltr),
-                    bottom = if (isKeyboardOpen()) 0.dp else innerPadding.calculateBottomPadding()
-                )
-        )
+        Column(modifier = Modifier
+            .padding(
+                start = innerPadding.calculateStartPadding(LayoutDirection.Ltr),
+                top = innerPadding.calculateTopPadding(),
+                end = innerPadding.calculateEndPadding(LayoutDirection.Ltr),
+                bottom = if (isKeyboardOpen()) 0.dp else innerPadding.calculateBottomPadding()
+            )
+        ) {
+            NavHost(
+                navController = navController,
+                startDestination = MAIN_SCREEN,
+                enterTransition = { slideInHorizontally { it } + fadeIn() },
+                exitTransition = { slideOutHorizontally { -it } + fadeOut() },
+                popEnterTransition = { slideInHorizontally { -it } + fadeIn() },
+                popExitTransition = { slideOutHorizontally { it } + fadeOut() },
+                modifier = Modifier
+                    .fillMaxSize()
+            ) {
+                composable(route = MAIN_SCREEN) {
+                    MainScreen(
+                        context,
+                        viewModel,
+                        uiState,
+                        navController = navController,
+                        modifier = Modifier
+                    )
+                }
+                composable(route = SETTINGS_SCREEN) {
+                    SettingsScreen(navController = navController)
+                }
+            }
+        }
         Column {
             Spacer(modifier = Modifier.size(64.dp))
         }
@@ -133,12 +164,14 @@ fun AppActivity() {
 @SuppressLint("SuspiciousIndentation")
 @Composable
 fun BottomBar(navController: NavController) {
-    val currentScreen = navController.currentBackStackEntry?.destination?.route
         BottomAppBar(windowInsets = BottomAppBarDefaults.windowInsets) {
+            val navBackStackEntry = navController.currentBackStackEntryAsState()
+            val currentRoute = navBackStackEntry.value?.destination?.route
+
             NavigationBarItem(
-                selected = true,
+                selected = currentRoute == MAIN_SCREEN,
                 onClick = {
-                    navController.navigate(PLANS_SCREEN)
+                    navController.navigate(MAIN_SCREEN)
                 },
                 icon = {
                     Icon(
@@ -150,7 +183,7 @@ fun BottomBar(navController: NavController) {
             )
             NavigationBarItem(
                 enabled = false,
-                selected = currentScreen == "",
+                selected = navController.currentDestination?.route == "",
                 onClick = {
                     //navController.navigate(PLANS_SCREEN)
                 },
@@ -163,10 +196,9 @@ fun BottomBar(navController: NavController) {
                 label = { Text("Занятия") }
             )
             NavigationBarItem(
-                enabled = false,
-                selected = currentScreen == "",
+                selected = currentRoute == SETTINGS_SCREEN,
                 onClick = {
-                    //navController.navigate(PLANS_SCREEN)
+                    navController.navigate(SETTINGS_SCREEN)
                 },
                 icon = {
                     Icon(
@@ -238,19 +270,21 @@ fun NavRail(navController: NavController) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TabsBar(context: Context, navController: NavController, viewModel: PlansScreenViewModel, uiState: PlansScreenUiState) {
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
-    val selectedTab = mainScreenTabs.indexOf(currentRoute ?: mainScreenTabs.first())
+fun TabsBar(
+    context: Context,
+    viewModel: PlansScreenViewModel,
+    uiState: PlansScreenUiState,
+    onTabSelected: (String) -> Unit
+) {
+    var currentRoute: String? by remember { mutableStateOf(null) }
 
     val keyboardController = LocalSoftwareKeyboardController.current
     val pagerState = rememberPagerState(pageCount = { mainScreenTabs.size })
-    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(currentRoute) {
         val newIndex = mainScreenTabs.indexOf(currentRoute)
         if (newIndex != -1 && newIndex != pagerState.currentPage) {
-            pagerState.scrollToPage(newIndex)
+            pagerState.animateScrollToPage(newIndex)
         }
     }
 
@@ -258,66 +292,67 @@ fun TabsBar(context: Context, navController: NavController, viewModel: PlansScre
         keyboardController?.hide()
         val newRoute = mainScreenTabs[pagerState.currentPage]
         if (newRoute != currentRoute) {
-            navController.navigate(newRoute) {
-                launchSingleTop = true
-                restoreState = true
-                popUpTo(navController.graph.startDestinationId) { /*TODO maybe change to saving last 5 screens or like that*/
-                    saveState = true
-                }
-            }
+            onTabSelected(newRoute)
+            currentRoute = newRoute
         }
     }
 
     Column {
-        PrimaryTabRow(selectedTabIndex = selectedTab,
-            contentColor = TabRowDefaults.secondaryContentColor,
-            indicator = {
-                TabRowDefaults.PrimaryIndicator(
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    width = 32.dp,
-                    modifier = Modifier
-                        .tabIndicatorOffset(selectedTab)
+        Row {
+            PrimaryTabRow(
+                selectedTabIndex = pagerState.currentPage,
+                contentColor = TabRowDefaults.secondaryContentColor,
+                indicator = {
+                    TabRowDefaults.PrimaryIndicator(
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        width = 64.dp,
+                        modifier = Modifier
+                            .tabIndicatorOffset(pagerState.currentPage)
+                    )
+                },
+                modifier = Modifier.weight(1f)
+            ) {
+                Tab(
+                    selected = pagerState.currentPage == mainScreenTabs.indexOf(PLANS_SCREEN),
+                    onClick = {
+                        onTabSelected(PLANS_SCREEN)
+                        currentRoute = PLANS_SCREEN
+                    },
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Checklist, null)
+                            Spacer(modifier = Modifier.size(8.dp))
+                            Text("Дневные")
+                        }
+                    },
+                    modifier = Modifier.clip(RoundedCornerShape(16.dp))
+                )
+                Tab(
+                    selected = pagerState.currentPage == mainScreenTabs.indexOf(NOTES_SCREEN),
+                    onClick = {
+                        onTabSelected(NOTES_SCREEN)
+                        currentRoute = NOTES_SCREEN
+                    },
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.EditNote, null)
+                            Spacer(modifier = Modifier.size(8.dp))
+                            Text("Записи")
+                        }
+                    },
+                    modifier = Modifier.clip(RoundedCornerShape(16.dp))
                 )
             }
-        ) {
-            Tab(
-                selected = pagerState.currentPage == mainScreenTabs.indexOf(PLANS_SCREEN),
-                onClick = {
-                    if (pagerState.currentPage != mainScreenTabs.indexOf(PLANS_SCREEN)) {
-                        coroutineScope.launch { pagerState.animateScrollToPage(mainScreenTabs.indexOf(PLANS_SCREEN)) }
-                    }
-                },
-                text = { Text("Дневные", overflow = TextOverflow.Ellipsis) }
-            )
-            Tab(
-                selected = pagerState.currentPage == mainScreenTabs.indexOf(NOTES_SCREEN),
-                onClick = {
-                    if (pagerState.currentPage != mainScreenTabs.indexOf(NOTES_SCREEN)) {
-                        coroutineScope.launch { pagerState.animateScrollToPage(mainScreenTabs.indexOf(NOTES_SCREEN)) }
-                    }
-                },
-                text = { Text("Записи", overflow = TextOverflow.Ellipsis) }
-            )
-            Tab(
-                selected = pagerState.currentPage == mainScreenTabs.indexOf(HISTORY_SCREEN),
-                onClick = {
-                    if (pagerState.currentPage != mainScreenTabs.indexOf(HISTORY_SCREEN)) {
-                        coroutineScope.launch { pagerState.animateScrollToPage(mainScreenTabs.indexOf(HISTORY_SCREEN)) }
-                    }
-                },
-                text = { Text("История", overflow = TextOverflow.Ellipsis) }
-            )
         }
 
-        HorizontalPager(pagerState) { page ->
-            when (mainScreenTabs[page]) {
-                PLANS_SCREEN -> {
-                    DailyPlansScreen(context, uiState, viewModel)
+            HorizontalPager(pagerState) { page ->
+                when (mainScreenTabs[page]) {
+                    PLANS_SCREEN -> {
+                        DailyPlansScreen(context, uiState, viewModel)
+                    }
+                    NOTES_SCREEN -> NotesScreen()
                 }
-                NOTES_SCREEN -> NotesScreen()
-                HISTORY_SCREEN -> HistoryScreen()
             }
-        }
     }
 }
 
@@ -329,8 +364,8 @@ suspend fun checkUpdates(context: Context) : Boolean {
     return result
 }
 
-@Preview
+@Preview(showSystemUi = false, showBackground = false)
 @Composable
 fun Preview() {
-    MainActivity()
+    PlanifyTheme { MainActivity() }
 }

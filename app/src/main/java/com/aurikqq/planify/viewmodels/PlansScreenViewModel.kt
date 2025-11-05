@@ -47,6 +47,8 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
             val isEditing = _uiState.value.isPlanEditing
             val isFirstLaunch = repo.getIsFirstLaunch()
             val isUpdatePopupShown = repo.getIsUpdatePopupShown()
+            val plansNotifications = repo.getPlansNotificationsEnabled()
+            val resetNotifications = repo.getResetNotificationsEnabled()
 
             _uiState.update {
                 it.copy (
@@ -58,7 +60,9 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
                     tempPlanInput = if (isEditing || !havePlans) tempPlans else "",
                     havePlans = havePlans,
                     isFirstLaunch = isFirstLaunch,
-                    isUpdatePopupShown = isUpdatePopupShown
+                    isUpdatePopupShown = isUpdatePopupShown,
+                    plansNotificationsEnabled = plansNotifications,
+                    resetNotificationsEnabled = resetNotifications
                 )
             }
         }

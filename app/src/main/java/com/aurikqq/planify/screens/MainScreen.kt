@@ -7,10 +7,12 @@ import android.content.res.Configuration
 import android.os.Build
 import android.provider.Settings
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateBounds
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -64,8 +66,6 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import com.aurikqq.planify.HISTORY_SCREEN
 import com.aurikqq.planify.NOTES_SCREEN
 import com.aurikqq.planify.PLANS_SCREEN
@@ -107,6 +107,10 @@ fun MainScreen(
     val chosenDates = mutableListOf<String>()
     for (date in uiState.days) { chosenDates.add(date.second) }
 
+    var selectedTab by rememberSaveable { mutableStateOf(PLANS_SCREEN) }
+    var isHistoryShown by remember { mutableStateOf(false) }
+    var preHistoryScreen by remember { mutableStateOf(PLANS_SCREEN) }
+
     val datePickerState = rememberDatePickerState(
         selectableDates = object : SelectableDates {
             override fun isSelectableDate(utcTimeMillis: Long): Boolean {
@@ -144,37 +148,10 @@ fun MainScreen(
     }
 
     if (showUpdateDialog) {
-        AlertDialog(
-            onDismissRequest = {
-                viewModel.updatePopupShown(true)
-                showUpdateDialog = false
-            },
-            title = {
-                Text("Что поменялось в этой версии:")
-            },
-            text = {
-                LazyColumn {
-                    item {
-                        Text("• Готов список дней - теперь можно распланировать наперёд любой день.\n" +
-                                "      - Планы для каждого дня отдельные, сами дни в любой момент можно добавить или удалить\n" +
-                                "      - Планы на будущее не сохраняются в историю (зачем в истории будущее...), пока этот день не пройдёт\n" +
-                                "      - То, что было сохранено на конкретный день, останется, когда этот день наступит - об этом напомнит уведомление\n" +
-                                "      - Ну и, естественно, интерфейсик красивый постарался сделать\n\n" +
-                                "• Выбранная в списке дата показывается сверху.\n\n" +
-                                "• Куча разных фиксов, доработки в интерфейсе, улучшение кода, бе-бе-бе..."
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showUpdateDialog = false
-                    viewModel.updatePopupShown(true)
-                }) {
-                    Text("Понял")
-                }
-            }
-        )
+        UpdateDialog {
+            viewModel.updatePopupShown(true)
+            showUpdateDialog = false
+        }
     }
 
     if (uiState.isDatePickerShown) {
@@ -300,33 +277,35 @@ fun MainScreen(
             }
         ) {
             Column {
-                DayLabel(uiState, drawerState, scope)
-                TabsBar(context, navController, viewModel, uiState)
+                TopBar(uiState, drawerState, scope, isHistoryShown) {
+                    isHistoryShown = !isHistoryShown
+                    if (selectedTab != HISTORY_SCREEN) {
+                        preHistoryScreen = selectedTab
+                        selectedTab = HISTORY_SCREEN
+                    }
+                    else {
+                        selectedTab = preHistoryScreen
+                    }
+                }
+
+                AnimatedVisibility(visible = selectedTab == PLANS_SCREEN || selectedTab == NOTES_SCREEN,
+                    enter = fadeIn() + expandHorizontally(),
+                    exit = fadeOut() + shrinkHorizontally()
+                ) {
+                    TabsBar(context, viewModel, uiState) { route ->
+                        selectedTab = route
+                    }
+                }
 
                 Surface {
-                    NavHost(
-                        navController = navController,
-                        startDestination = PLANS_SCREEN,
-                        enterTransition = { slideInHorizontally { it } + fadeIn() },
-                        exitTransition = { slideOutHorizontally { -it } + fadeOut() },
-                        popEnterTransition = { slideInHorizontally { -it } + fadeIn() },
-                        popExitTransition = { slideOutHorizontally { it } + fadeOut() },
-                        modifier = Modifier
-                            .fillMaxSize()
-                    ) {
-                        composable(route = PLANS_SCREEN) {
-                            DailyPlansScreen(
-                                context,
-                                uiState,
-                                viewModel
-                            )
-                        }
-                        composable(route = NOTES_SCREEN) {
-                            NotesScreen()
-                        }
-                        composable(route = HISTORY_SCREEN) {
-                            HistoryScreen()
-                        }
+                    when (selectedTab) {
+                        PLANS_SCREEN -> DailyPlansScreen(
+                            context,
+                            uiState,
+                            viewModel
+                        )
+                        NOTES_SCREEN -> NotesScreen()
+                        HISTORY_SCREEN -> HistoryScreen()
                     }
                 }
             }
@@ -366,32 +345,53 @@ fun MainScreen(
             }
 
             Column {
-                TabsBar(context, navController, viewModel, uiState)
+                TabsBar(context, viewModel, uiState) { route ->
+                    selectedTab = route
+                }
 
                 Surface {
-                    NavHost(
-                        navController = navController,
-                        startDestination = PLANS_SCREEN,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        composable(route = PLANS_SCREEN) {
-                            DailyPlansScreen(
-                                context,
-                                uiState,
-                                viewModel
-                            )
-                        }
-                        composable(route = NOTES_SCREEN) {
-                            NotesScreen()
-                        }
-                        composable(route = HISTORY_SCREEN) {
-                            HistoryScreen()
-                        }
+                    when (selectedTab) {
+                        PLANS_SCREEN -> DailyPlansScreen(
+                            context,
+                            uiState,
+                            viewModel
+                        )
+                        NOTES_SCREEN -> NotesScreen()
+                        HISTORY_SCREEN -> HistoryScreen()
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+fun UpdateDialog(onClickOrDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onClickOrDismiss,
+        title = {
+            Text("Что поменялось в этой версии:")
+        },
+        text = {
+            LazyColumn {
+                item {
+                    Text("• Готов список дней - теперь можно распланировать наперёд любой день.\n" +
+                            "      - Планы для каждого дня отдельные, сами дни в любой момент можно добавить или удалить\n" +
+                            "      - Планы на будущее не сохраняются в историю (зачем в истории будущее...), пока этот день не пройдёт\n" +
+                            "      - То, что было сохранено на конкретный день, останется, когда этот день наступит - об этом напомнит уведомление\n" +
+                            "      - Ну и, естественно, интерфейсик красивый постарался сделать\n\n" +
+                            "• Выбранная в списке дата показывается сверху.\n\n" +
+                            "• Куча разных фиксов, доработки в интерфейсе, улучшение кода, бе-бе-бе..."
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onClickOrDismiss) {
+                Text("Понял")
+            }
+        }
+    )
 }
 
 @Composable

@@ -3,6 +3,7 @@ package com.aurikqq.planify.screens
 import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -52,12 +53,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -100,152 +102,19 @@ fun NotesScreen(modifier: Modifier = Modifier) {
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
 
+    val height by animateDpAsState(if (uiState.notes.isNotEmpty()) 24.dp else 48.dp, tween())
     LazyColumn(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top,
-        contentPadding = PaddingValues(start = 24.dp, top = 96.dp, end = 24.dp, bottom = 32.dp),
+        contentPadding = PaddingValues(start = 8.dp, top = height, end = 8.dp, bottom = 32.dp),
         modifier = modifier
             .fillMaxSize()
             .imePadding()
     ) {
         if (uiState.notes.isNotEmpty()) {
             items(uiState.notes) { note ->
-                Card(
-                    elevation = CardDefaults.cardElevation(0.dp),
-                    modifier = Modifier
-                        .widthIn(max = 800.dp)
-                        .fillMaxWidth()
-                        .defaultMinSize(minHeight = 120.dp)
-                        .shadow(
-                            elevation = 4.dp,
-                            shape = RoundedCornerShape(12.dp),
-                            clip = false
-                        )
-                        .animateContentSize(spring())
-                ) {
-                    var isEditing by remember { mutableStateOf(false) } // human, i remember you're genocides
-                    var isExpanded by remember { mutableStateOf(note.isExpanded) }
-                    val deg by animateFloatAsState(if (isExpanded) 0f else 180f)
-
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        if (!isEditing) {
-                            Row (
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(
-                                    note.title,
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    modifier = Modifier
-                                        .padding(bottom = 8.dp)
-                                )
-                                IconButton(
-                                    onClick = {
-                                        note.isExpanded = !note.isExpanded
-                                        viewModel.setNote(note)
-                                        isExpanded = !isExpanded
-                                    },
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.KeyboardArrowDown, null,
-                                        modifier = Modifier
-                                            .rotate(deg)
-                                            .animateItem()
-                                    )
-                                }
-                            }
-                            AnimatedVisibility(
-                                visible = isExpanded,
-                                enter = expandVertically (
-                                    expandFrom = Alignment.Top,
-                                    animationSpec = tween()
-                                ) + fadeIn(),
-                                exit = shrinkVertically(
-                                    shrinkTowards = Alignment.Top,
-                                    animationSpec = tween()
-                                ) + fadeOut()
-                            ) {
-                                Text(
-                                    text = note.text,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        else {
-                            BasicTextField(
-                                value = note.title,
-                                onValueChange = {
-                                    viewModel.onNoteTitleEditingInput(it)
-                                    note.title = it },
-                                textStyle = LocalTextStyle.current.copy(
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onBackground
-                                ),
-                                modifier = Modifier
-                                    .padding(bottom = 8.dp)
-                                    .fillMaxWidth()
-                            )
-
-                            LaunchedEffect(Unit) {
-                                focusRequester.requestFocus()
-                                keyboardController?.show()
-                            }
-                            BasicTextField(
-                                value = note.text,
-                                onValueChange = {
-                                    viewModel.onNoteTextEditingInput(it)
-                                    note.text = it },
-                                textStyle = LocalTextStyle.current.copy(
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                ),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .focusRequester(focusRequester)
-                            )
-                        }
-                        Spacer(modifier = Modifier.size(16.dp))
-
-                        Row(
-                            horizontalArrangement = if (isExpanded) Arrangement.SpaceBetween else Arrangement.End,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            if (!isEditing) {
-                                if (isExpanded)
-                                    FilledTonalButton(
-                                        onClick = {
-                                            isEditing = true
-                                            viewModel.isEditing(true)
-                                        },
-                                        enabled = !uiState.isEditing && !uiState.isAddingNote
-                                    ) {
-                                        Text("Поменять")
-                                    }
-
-                                IconButton(
-                                    onClick = { viewModel.removeNote(note) },
-                                    shape = RoundedCornerShape(12.dp)
-                                ) {
-                                    Icon(Icons.Default.Delete, null)
-                                }
-                            } else {
-                                ElevatedButton(
-                                    onClick = {
-                                        isEditing = false
-                                        viewModel.setNote(note)
-                                        viewModel.isEditing(false)
-                                    }
-                                ) {
-                                    Text(stringResource(R.string.button_finish_editing))
-                                }
-                            }
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.size(32.dp))
+                NoteCard(note, viewModel, uiState,
+                    keyboardController, focusRequester, Modifier.animateItem())
             }
 
             item {
@@ -300,14 +169,14 @@ fun NotesScreen(modifier: Modifier = Modifier) {
                             "Также, можно делать несколько отдельных записей.\n",
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                    modifier = Modifier.padding(start = 16.dp)
+                    modifier = Modifier.padding(start = 8.dp)
                 )
 
-                Spacer(modifier = Modifier.size(32.dp))
+                Spacer(modifier = Modifier.size(24.dp))
 
                 EmptyNoteCard(uiState, viewModel, Modifier.animateItem(placementSpec = spring()))
 
-                Spacer(modifier = Modifier.size(32.dp))
+                Spacer(modifier = Modifier.size(24.dp))
             }
             item {
                 Button(
@@ -323,20 +192,169 @@ fun NotesScreen(modifier: Modifier = Modifier) {
 }
 
 @Composable
+fun NoteCard(
+    note: Note, viewModel: NotesScreenViewModel, uiState: NotesScreenUiState,
+    keyboardController: SoftwareKeyboardController?, focusRequester: FocusRequester, modifier: Modifier
+) {
+    var isRemoving by remember { mutableStateOf(false) }
+    val alpha by animateFloatAsState(if (isRemoving) 0.5f else 1f)
+
+    AnimatedVisibility(
+        visible = !isRemoving,
+        exit = fadeOut() + shrinkVertically(
+            animationSpec = tween(300)
+        ),
+        modifier = modifier
+    ) {
+        Card(
+            elevation = CardDefaults.cardElevation(4.dp),
+            modifier = Modifier
+                .widthIn(max = 800.dp)
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = 120.dp)
+                .animateContentSize(spring())
+                .alpha(alpha)
+                .padding(8.dp)
+        ) {
+            var isEditing by remember { mutableStateOf(false) } // human, i remember you're genocides
+            var isExpanded by remember { mutableStateOf(note.isExpanded) }
+            val deg by animateFloatAsState(if (isExpanded) 180f else 0f)
+
+            Column(modifier = Modifier.padding(16.dp)) {
+                if (!isEditing) {
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            note.title,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier
+                                .padding(bottom = 8.dp)
+                        )
+                        IconButton(
+                            onClick = {
+                                note.isExpanded = !note.isExpanded
+                                viewModel.setNote(note)
+                                isExpanded = !isExpanded
+                            },
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.KeyboardArrowDown, null,
+                                modifier = modifier
+                                    .rotate(deg)
+                            )
+                        }
+                    }
+                    AnimatedVisibility(
+                        visible = isExpanded,
+                        enter = expandVertically(
+                            expandFrom = Alignment.Top,
+                            animationSpec = tween()
+                        ) + fadeIn(),
+                        exit = shrinkVertically(
+                            shrinkTowards = Alignment.Top,
+                            animationSpec = tween()
+                        ) + fadeOut()
+                    ) {
+                        Text(
+                            text = note.text,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                } else {
+                    BasicTextField(
+                        value = note.title,
+                        onValueChange = {
+                            viewModel.onNoteTitleEditingInput(it)
+                            note.title = it
+                        },
+                        textStyle = LocalTextStyle.current.copy(
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onBackground
+                        ),
+                        modifier = Modifier
+                            .padding(bottom = 8.dp)
+                            .fillMaxWidth()
+                    )
+
+                    LaunchedEffect(Unit) {
+                        focusRequester.requestFocus()
+                        keyboardController?.show()
+                    }
+                    BasicTextField(
+                        value = note.text,
+                        onValueChange = {
+                            viewModel.onNoteTextEditingInput(it)
+                            note.text = it
+                        },
+                        textStyle = LocalTextStyle.current.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .focusRequester(focusRequester)
+                    )
+                }
+                Spacer(modifier = Modifier.size(16.dp))
+
+                Row(
+                    horizontalArrangement = if (isExpanded) Arrangement.SpaceBetween else Arrangement.End,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    if (!isEditing) {
+                        if (isExpanded)
+                            FilledTonalButton(
+                                onClick = {
+                                    isEditing = true
+                                    viewModel.isEditing(true)
+                                },
+                                enabled = !uiState.isEditing && !uiState.isAddingNote
+                            ) {
+                                Text("Поменять")
+                            }
+
+                        IconButton(
+                            onClick = {
+                                viewModel.removeNote(note) 
+                                isRemoving = true },
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.Delete, null)
+                        }
+                    } else {
+                        ElevatedButton(
+                            onClick = {
+                                isEditing = false
+                                viewModel.setNote(note)
+                                viewModel.isEditing(false)
+                            }
+                        ) {
+                            Text(stringResource(R.string.button_finish_editing))
+                        }
+                    }
+                }
+            }
+        }
+    }
+    Spacer(modifier = Modifier.size(16.dp))
+}
+
+@Composable
 fun EmptyNoteCard(uiState: NotesScreenUiState, viewModel: NotesScreenViewModel, modifier: Modifier) {
 // modifier cause spring animation is impossible to use outside of lazy column, I guess
     Card(
-        elevation = CardDefaults.cardElevation(0.dp),
+        elevation = CardDefaults.cardElevation(4.dp),
         modifier = Modifier
             .widthIn(max = 800.dp)
             .fillMaxWidth()
             .defaultMinSize(minHeight = 120.dp)
-            .shadow(
-                elevation = 4.dp,
-                shape = RoundedCornerShape(12.dp),
-                clip = false
-            )
             .animateContentSize()
+            .padding(8.dp)
     ) {
         Column(
             modifier = Modifier
@@ -374,7 +392,7 @@ fun EmptyNoteCard(uiState: NotesScreenUiState, viewModel: NotesScreenViewModel, 
 @Preview(showSystemUi = true, showBackground = true, locale = "ru")
 @Composable
 fun ConstantPlansPreview() {
-PlanifyTheme {
-    NotesScreen()
-}
+    PlanifyTheme {
+        NotesScreen()
+    }
 }

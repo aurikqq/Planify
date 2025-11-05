@@ -3,6 +3,7 @@ package com.aurikqq.planify.screens
 import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -32,7 +33,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -72,10 +72,11 @@ fun HistoryScreen() {
 
     val uiState by viewModel.uiState.collectAsState()
 
+    val height by animateDpAsState(if (uiState.plansList.isNotEmpty()) 24.dp else 48.dp, tween())
     LazyColumn(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top,
-        contentPadding = PaddingValues(start = 24.dp, top = 96.dp, end = 24.dp, bottom = 32.dp),
+        contentPadding = PaddingValues(start = 24.dp, top = height, end = 24.dp, bottom = 32.dp),
         modifier = Modifier
             .fillMaxSize()
     ) {

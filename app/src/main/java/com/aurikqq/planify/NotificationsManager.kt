@@ -127,7 +127,7 @@ object AlarmScheduler {
 
     @SuppressLint("ShortAlarm", "ScheduleExactAlarm")
     fun scheduleRepeatingAlarm(context: Context) {
-        val interval = 2 * 60 * 60 * 1000L
+        val interval = 5L //2 * 60 * 60 * 1000L
         val intent = Intent(context, TimeReceiver::class.java)
         val pendingIntent = PendingIntent.getBroadcast(
             context,
@@ -147,6 +147,20 @@ object AlarmScheduler {
     fun cancelNotifications(context: Context) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(context, TimeReceiver::class.java)
+
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            1,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        alarmManager.cancel(pendingIntent)
+    }
+
+    fun cancelResetNotifications(context: Context) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val intent = Intent(context, ResetReceiver::class.java)
 
         val pendingIntent = PendingIntent.getBroadcast(
             context,
@@ -219,7 +233,7 @@ fun showPlansNotification(
         .setPriority(NotificationCompat.PRIORITY_DEFAULT)
         .setContentIntent(pendingIntent)
         .setAutoCancel(true)
-        .setStyle(NotificationCompat.BigTextStyle().bigText(""))
+        //.setStyle(NotificationCompat.BigTextStyle().bigText(""))
 
     with(NotificationManagerCompat.from(context)) {
         notify(1, builder.build())
