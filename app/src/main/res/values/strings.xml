@@ -1,0 +1,30 @@
+<resources>
+    <string name="app_name">Planify</string>
+    <string name="plans_card_title">Hey! There are your plans:</string>
+    <string name="label_add_plans">Add something</string>
+    <string name="label_set_plans">Share your plans</string>
+    <string name="toast_set_plans">Got \'em!</string>
+    <string name="button_set_plans">Remember</string>
+    <string name="toast_added_plans">Added!</string>
+    <string name="button_add_plans">Add things</string>
+    <string name="bottom_text_have_plans">Great! Planify remembered\nyour plans for today.\nNow you\'re gonna get notified about them every 2 hours.\n\nYou can add anything to your plans easily -\njust write it above.</string>
+    <string name="bottom_text_first_launch">Welcome! Here you can write all your plans for today - from the most significant to minor ones. After that, Planify will remind you about them every 2 hours. And, of course, you can change plans later!</string>
+    <string name="bottom_text_no_plans">Yesterday is over, and there\'s a new amazing day ahead.\n\nTime to think about your plans for today -\nor give yourself a break.</string>
+    <string name="notification_title_01">Hey! You have great things planned</string>
+    <string name="notification_title_02">Hey! Refresh your plans in memory</string>
+    <string name="notification_title_03">Hey… just a little reminder</string>
+    <string name="notifications_channel_description">Notifications for your plans</string>
+    <string name="notifications_channel_name">Planify Plans</string>
+    <string name="notification_text">You left this for today:</string>
+    <string name="reset_notification_title">Greetings!</string>
+    <string name="reset_notification_text_01">Plans\'ve been reset. What\'s on agenda today?</string>
+    <string name="reset_notification_text_02">Plans\'ve been forgotten. What\'re you gonna do today?</string>
+    <string name="reset_notification_text_03">Plans\'ve been disappeared. What about today\'s ones?</string>
+    <string name="button_edit_plans">Edit plans</string>
+    <string name="button_finish_editing">Done, finish</string>
+    <string name="label_edit_plans">Edit \'em all</string>
+    <string name="toast_edited_plans">Edited!</string>
+    <string name="logs_shortcut_short_label">Send logs</string>
+    <string name="logs_shortcut_long_label">Send logs</string>
+    <string name="logs_shortcut_disabled_message">Disabled</string>
+</resources>
