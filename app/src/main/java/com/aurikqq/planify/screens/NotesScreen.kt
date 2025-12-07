@@ -73,6 +73,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.aurikqq.planify.PREFERENCES_NAME
 import com.aurikqq.planify.R
 import com.aurikqq.planify.Repository
+import com.aurikqq.planify.snowfall
 import com.aurikqq.planify.ui.theme.PlanifyTheme
 import com.aurikqq.planify.viewmodels.Note
 import com.aurikqq.planify.viewmodels.NotesScreenViewModel
@@ -116,6 +117,7 @@ fun NotesScreen(modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxSize()
             .imePadding()
+            .snowfall()
     ) {
         if (uiState.notes.isNotEmpty()) {
             items(uiState.notes) { note ->

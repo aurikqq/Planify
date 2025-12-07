@@ -32,8 +32,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddTask
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.InvertColors
+import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.Update
@@ -60,6 +62,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -79,6 +82,7 @@ import com.aurikqq.planify.CHANGELOG
 import com.aurikqq.planify.R
 import com.aurikqq.planify.SETTINGS_SCREEN
 import com.aurikqq.planify.checkUpdates
+import com.aurikqq.planify.snowfall
 import com.aurikqq.planify.ui.theme.PlanifyTheme
 import com.aurikqq.planify.viewmodels.SettingsScreenViewModel
 import kotlinx.coroutines.launch
@@ -147,6 +151,7 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsScreenViewMo
                     bottom = WindowInsets.navigationBars.asPaddingValues()
                         .calculateBottomPadding() + 80.dp
                 )
+                .snowfall()
         ) {
             item {
                 SettingsCategory("Уведомления") {
@@ -226,6 +231,52 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsScreenViewMo
             }
 
             item {
+                SettingsCategory("Поведение") {
+                    ListItem(
+                        headlineContent = { Text("Запись планов при запуске") },
+                        trailingContent = {
+                            Box(
+                                modifier = Modifier
+                                    .background(Color.White)
+                                    .clip(RoundedCornerShape(16.dp))
+                            )
+                        },
+                        leadingContent = { Icon(Icons.Default.Keyboard, null) },
+                        supportingContent = { Text(
+                            "Если ничего не запланировано, при открытии приложения сразу появляется клавиатура, чтобы записать свои дела можно было ещё быстрее"
+                        ) },
+                        modifier = Modifier.clickable(
+                            enabled = true,
+                            onClick = {  },
+                            interactionSource = null,
+                            indication = ripple(bounded = true)
+                        )
+                    )
+
+                    ListItem(
+                        headlineContent = { Text("Добавление планов при запуске") },
+                        trailingContent = {
+                            Box(
+                                modifier = Modifier
+                                    .background(Color.White)
+                                    .clip(RoundedCornerShape(16.dp))
+                            )
+                        },
+                        leadingContent = { Icon(Icons.Default.AddTask, null) },
+                        supportingContent = { Text(
+                            "При наличии планов при открытии сразу появляется клавиатура, чтобы быстрее добавить их"
+                        ) },
+                        modifier = Modifier.clickable(
+                            enabled = true,
+                            onClick = {  },
+                            interactionSource = null,
+                            indication = ripple(bounded = true)
+                        )
+                    )
+                }
+            }
+
+            item {
                 SettingsCategory("Внешний вид") {
                     ListItem(
                         headlineContent = { Text("Тема приложения") },
@@ -276,7 +327,7 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsScreenViewMo
                                     val whaaatIsItAnUpdate = checkUpdates(context)
                                     val text = when (whaaatIsItAnUpdate) {
                                         false -> "Обновлений не нашлось..."
-                                        true -> "Обновления нашлись! Вернись к планам, чтобы скачать"
+                                        true -> "Обновления нашлись! Перезайди в Planify, чтобы скачать"
                                     }
                                     Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
                                 }
@@ -291,14 +342,10 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsScreenViewMo
     }
 }
 
-
 @Composable
-fun RollingNumberText(
-    targetValue: Int,
-    modifier: Modifier = Modifier
-) {
-    var currentValue by remember { mutableStateOf(targetValue) }
-    var direction by remember { mutableStateOf(0) }
+fun RollingNumberText(targetValue: Int) {
+    var currentValue by remember { mutableIntStateOf(targetValue) }
+    var direction by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(targetValue) {
         if (targetValue != currentValue) {
@@ -312,27 +359,23 @@ fun RollingNumberText(
     AnimatedContent(
         targetState = currentValue,
         transitionSpec = {
-            // Явно именуем параметры initialOffsetY / targetOffsetY, чтобы избежать
-            // несоответствий с другими перегрузками slideIn/slideOut.
             if (direction > 0) {
-                // Новое число выезжает снизу -> старое уходит наверх
                 (slideInVertically(
                     animationSpec = tween(durationMillis = 300),
-                    initialOffsetY = { fullHeight -> fullHeight } // start below
+                    initialOffsetY = { fullHeight -> fullHeight }
                 ) + fadeIn()).togetherWith(
                     slideOutVertically(
                         animationSpec = tween(durationMillis = 300),
-                        targetOffsetY = { fullHeight -> -fullHeight } // go above
+                        targetOffsetY = { fullHeight -> -fullHeight }
                     ) + fadeOut())
             } else {
-                // Новое число выезжает сверху -> старое уходит вниз
                 (slideInVertically(
                     animationSpec = tween(durationMillis = 300),
-                    initialOffsetY = { fullHeight -> -fullHeight } // start above
+                    initialOffsetY = { fullHeight -> -fullHeight }
                 ) + fadeIn()).togetherWith(
                     slideOutVertically(
                         animationSpec = tween(durationMillis = 300),
-                        targetOffsetY = { fullHeight -> fullHeight } // go below
+                        targetOffsetY = { fullHeight -> fullHeight }
                     ) + fadeOut())
             }
         },
@@ -360,6 +403,8 @@ fun RollingNumberText(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ThemeModalSheet(uiState: SettingsScreenUiState, viewModel: SettingsScreenViewModel, onDismiss: () -> Unit) {
+    val pics = listOf(R.drawable.pixil_frame_0, R.drawable.pixil_frame_0_1_, R.drawable.pixil_frame_0_2_, R.drawable.pixil_frame_0_3_)
+
     val isInDarkTheme = uiState.isDarkThemeOn
     ModalBottomSheet(onDismissRequest = onDismiss) {
         LazyColumn(modifier = Modifier.height(240.dp)) {
@@ -385,7 +430,7 @@ fun ThemeModalSheet(uiState: SettingsScreenUiState, viewModel: SettingsScreenVie
 
                 Spacer(Modifier.size(24.dp))
                 Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth()) {
-                    Image(painterResource(R.drawable.pixil_frame_0), null, modifier = Modifier.size(32.dp))
+                    Image(painterResource(pics.random()), null, modifier = Modifier.size(32.dp))
                 }
                 Spacer(Modifier.size(8.dp))
             }

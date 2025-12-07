@@ -77,6 +77,7 @@ import com.aurikqq.planify.AlarmScheduler
 import com.aurikqq.planify.NavRail
 import com.aurikqq.planify.R
 import com.aurikqq.planify.createNotificationChannel
+import com.aurikqq.planify.snowfall
 import com.aurikqq.planify.viewmodels.PlansScreenViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -254,6 +255,7 @@ fun DailyPlansScreen(
         modifier = Modifier
             .fillMaxSize()
             .imePadding()
+            .snowfall()
     ) {
         if (uiState.havePlans) {
             item {

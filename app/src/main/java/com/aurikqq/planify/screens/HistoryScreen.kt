@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.aurikqq.planify.PREFERENCES_NAME
 import com.aurikqq.planify.Repository
+import com.aurikqq.planify.snowfall
 import com.aurikqq.planify.viewmodels.HistoryScreenViewModel
 import com.aurikqq.planify.viewmodels.HistoryScreenViewModelFactory
 
@@ -84,6 +85,7 @@ fun HistoryScreen() {
         ),
         modifier = Modifier
             .fillMaxSize()
+            .snowfall()
     ) {
         if (uiState.plansList.isNotEmpty()) {
             items(uiState.plansList.reversed()) { plan ->
@@ -151,7 +153,7 @@ fun HistoryScreen() {
         } else {
             item {
                 Text(
-                    text = "Здесь будут твои планы, оставшиеся в прошлом...",
+                    text = "Здесь будут твои оставшиеся в прошлом планы...",
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
                     modifier = Modifier.padding(start = 16.dp)
                 )
