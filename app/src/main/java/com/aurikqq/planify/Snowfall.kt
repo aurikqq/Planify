@@ -70,14 +70,14 @@ fun Int.random() =
 fun IntSize.randomPosition() =
     Offset(width.random().toFloat(), height.random().toFloat())
 
-private const val snowflakeDensity = 0.015
+private const val snowflakeDensity = 0.012
 private val incrementRange = 0.05f..0.07f
 private val sizeRange = 5.0f..8.0f
 private const val angleSeed = 25.0f
 private val angleSeedRange = -angleSeed..angleSeed
 private const val angleRange = 0.1f
 private const val angleDivisor = 10000.0f
-private val alphaRange = 0.6f..0.75f
+private val alphaRange = 0.5f..0.65f
 
 internal data class SnowflakesState(
     var tickNanos: Long,

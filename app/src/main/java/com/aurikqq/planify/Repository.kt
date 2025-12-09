@@ -2,7 +2,6 @@ package com.aurikqq.planify
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.util.Log
 import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.core.content.edit
@@ -86,9 +85,6 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
         val jsonPlansList = Json.encodeToString(plansList)
         sharedPreferences.edit {
             putString(KEY_DAILY_PLANS_HISTORY, jsonPlansList)
-        }
-
-        sharedPreferences.edit {
             remove("${KEY_PLANS}_$newDate")
             remove("${KEY_HAVE_PLANS}_$newDate")
         }
@@ -178,7 +174,6 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
 
     fun getPlansList() : MutableList<Pair<String, String>> {
         val json = sharedPreferences.getString(KEY_DAILY_PLANS_HISTORY, "[]") ?: "[]"
-        Log.d("u", "${Json.decodeFromString<MutableList<Pair<String, String>>>(json)}")
         return Json.decodeFromString<MutableList<Pair<String, String>>>(json)
     }
 

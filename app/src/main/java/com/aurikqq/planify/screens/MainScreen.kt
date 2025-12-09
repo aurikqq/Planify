@@ -20,6 +20,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -339,14 +340,15 @@ fun DrawerContent(
                     color = MaterialTheme.colorScheme.primary
                 )
                 Image(painterResource(
-                    R.drawable.pixil_frame_0_2_),
+                    R.drawable.christmas_hat),
                     null,
                     modifier = Modifier
                         .size(20.dp)
-                        .offset(64.dp, (-9).dp)
+                        .offset(65.dp, (-5).dp)
                         .graphicsLayer {
                             scaleX = -1f
                         }
+                        .rotate(-20f)
                 )
             }
         }
@@ -464,13 +466,14 @@ fun UpdateLabel() {
                                     .show()
                             }
                         }
-                    } else if (dlProgress >= 100f && isDownloading) {
+                    } else if (dlProgress >= 100f && !isDownloading) {
                         if (installApk(context, apk)) {
                             viewModel.updatePopupShown(false)
                         }
                     }
                 },
                 shape = RoundedCornerShape(16.dp),
+                contentPadding = PaddingValues(0.dp),
                 modifier = Modifier
                     .padding(
                         horizontal = animateDpAsState(if (isDownloading) 32.dp else 16.dp).value,

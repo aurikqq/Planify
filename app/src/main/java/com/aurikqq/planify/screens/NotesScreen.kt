@@ -173,7 +173,7 @@ fun NotesScreen(modifier: Modifier = Modifier) {
                 Text(
                     "Записи - раздел, где ты можешь оставить что угодно, " +
                             "и сохранённое здесь не удалится.\n" +
-                            "Тут может быть то, что тебе надо\nзапомнить или сделать не сегодня.\n\n" +
+                            "Тут может быть то, что тебе надо запомнить или сделать не сегодня.\n\n" +
                             "Также, можно делать несколько отдельных записей.\n",
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
@@ -336,7 +336,8 @@ fun NoteCard(
                         IconButton(
                             onClick = {
                                 viewModel.removeNote(note)
-                                isRemoving = true },
+                                //isRemoving = true
+                            },
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Icon(Icons.Default.Delete, null)

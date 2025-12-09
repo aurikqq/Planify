@@ -11,6 +11,7 @@ import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +29,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
@@ -60,12 +62,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -113,51 +117,66 @@ fun DaysListItem(
     onRemove: () -> Unit = {},
     onClick: () -> Unit
 ) {
-    Row(
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .height(64.dp)
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
-            .clickable(onClick = onClick)
-    ) {
-        val color = MaterialTheme.colorScheme.secondaryContainer
-
+    Box {
         Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .clip(if (isSelected) RoundedCornerShape(16.dp) else RoundedCornerShape(0.dp))
-                .background(if (isSelected) color.copy(alpha = 0.75f) else Color.Transparent)
-                .fillMaxWidth(if (isDaysListEditing) 0.75f else 1f)
-                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .height(64.dp)
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.background)
+                .clickable(onClick = onClick)
         ) {
-            if (isSelected) {
-                Box(
-                    modifier = Modifier
-                        .width(4.dp)
-                        .height(36.dp)
-                        .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(50))
+            val color = MaterialTheme.colorScheme.secondaryContainer
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(if (isSelected) RoundedCornerShape(16.dp) else RoundedCornerShape(0.dp))
+                    .background(if (isSelected) color.copy(alpha = 0.75f) else Color.Transparent)
+                    .fillMaxWidth(if (isDaysListEditing) 0.75f else 1f)
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                if (isSelected) {
+                    Box(
+                        modifier = Modifier
+                            .width(4.dp)
+                            .height(36.dp)
+                            .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(50))
+                    )
+                }
+
+                Text(
+                    text = date,
+                    color = if (uiState.days.isNotEmpty())
+                        MaterialTheme.colorScheme.onSecondaryContainer
+                    else MaterialTheme.colorScheme.onBackground,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                    modifier = Modifier.padding(start = if (isSelected) 16.dp else 0.dp)
                 )
             }
 
-            Text(
-                text = date,
-                color = if (uiState.days.isNotEmpty())
-                    MaterialTheme.colorScheme.onSecondaryContainer
-                else MaterialTheme.colorScheme.onBackground,
-                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                modifier = Modifier.padding(start = if (isSelected) 16.dp else 0.dp)
-            )
+            if (isDaysListEditing) {
+                TextButton(
+                    onClick = onRemove,
+                    modifier = Modifier.padding(end = 4.dp)
+                ) {
+                    Icon(Icons.Default.Close, contentDescription = null)
+                }
+            }
         }
 
-        if (isDaysListEditing) {
-            TextButton(
-                onClick = onRemove,
-                modifier = Modifier.padding(end = 4.dp)
-            ) {
-                Icon(Icons.Default.Close, contentDescription = null)
-            }
+        if (isSelected) {
+            Image(
+                painterResource(
+                    R.drawable.snowflake
+                ),
+                null,
+                modifier = Modifier
+                    .size(32.dp)
+                    .offset(animateDpAsState(if (isDaysListEditing) 164.dp else 228.dp).value, 0.dp)
+                    .rotate(15f)
+            )
         }
     }
 }
@@ -345,7 +364,10 @@ fun DailyPlansScreen(
             } else {
                 Row {
                     ElevatedButton(
-                        onClick = { viewModel.addPlans() },
+                        onClick = {
+                            viewModel.addPlans()
+                            viewModel.tempPlans("")
+                        },
                         enabled = uiState.tempPlanInput.isNotBlank() && !uiState.isPlanEditing,
                     ) {
                         Text(text = stringResource(R.string.button_add_plans))
@@ -353,7 +375,10 @@ fun DailyPlansScreen(
                     Spacer(modifier = Modifier.size(32.dp))
                     if (uiState.isPlanEditing) {
                         ElevatedButton(
-                            onClick = { viewModel.endEditingPlans() },
+                            onClick = {
+                                viewModel.endEditingPlans()
+                                viewModel.tempPlans("")
+                            },
                             enabled = uiState.tempPlanInput.isNotBlank(),
                             modifier = Modifier
                         ) {
@@ -376,8 +401,18 @@ fun DailyPlansScreen(
                     stringResource(R.string.bottom_text_have_plans)
                 else if (uiState.isFirstLaunch)
                     stringResource(R.string.bottom_text_first_launch)
-                else
-                    stringResource(R.string.bottom_text_no_plans),
+                else{
+                    listOf(
+                        stringResource(R.string.bottom_text_no_plans_0),
+                        stringResource(R.string.bottom_text_no_plans_1),
+                        stringResource(R.string.bottom_text_no_plans_2),
+                        stringResource(R.string.bottom_text_no_plans_xmas),
+                        stringResource(R.string.bottom_text_no_plans_xmas),
+                        stringResource(R.string.bottom_text_no_plans_xmas_2),
+                        stringResource(R.string.bottom_text_no_plans_xmas_2)
+                    ).random()
+                }
+                    ,
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
                 modifier = Modifier

@@ -153,7 +153,7 @@ fun HistoryScreen() {
         } else {
             item {
                 Text(
-                    text = "Здесь будут твои оставшиеся в прошлом планы...",
+                    text = "Здесь будут твои планы,\nоставшиеся в прошлом...",
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
                     modifier = Modifier.padding(start = 16.dp)
                 )

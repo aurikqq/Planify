@@ -233,17 +233,18 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsScreenViewMo
             item {
                 SettingsCategory("Поведение") {
                     ListItem(
-                        headlineContent = { Text("Запись планов при запуске") },
+                        headlineContent = { Text("Быстрая запись") },
                         trailingContent = {
-                            Box(
-                                modifier = Modifier
-                                    .background(Color.White)
-                                    .clip(RoundedCornerShape(16.dp))
+                            Switch(
+                                checked = false,
+                                enabled = false,
+                                onCheckedChange = { }
                             )
                         },
                         leadingContent = { Icon(Icons.Default.Keyboard, null) },
                         supportingContent = { Text(
-                            "Если ничего не запланировано, при открытии приложения сразу появляется клавиатура, чтобы записать свои дела можно было ещё быстрее"
+                            "При входе сразу появится клавиатура, если нет планов"
+                            //"Если ничего не запланировано, при открытии приложения сразу появляется клавиатура, чтобы записать свои дела можно было ещё быстрее"
                         ) },
                         modifier = Modifier.clickable(
                             enabled = true,
@@ -254,17 +255,17 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsScreenViewMo
                     )
 
                     ListItem(
-                        headlineContent = { Text("Добавление планов при запуске") },
+                        headlineContent = { Text("Быстрое дополнение") },
                         trailingContent = {
-                            Box(
-                                modifier = Modifier
-                                    .background(Color.White)
-                                    .clip(RoundedCornerShape(16.dp))
+                            Switch(
+                                checked = false,
+                                enabled = false,
+                                onCheckedChange = { }
                             )
                         },
                         leadingContent = { Icon(Icons.Default.AddTask, null) },
                         supportingContent = { Text(
-                            "При наличии планов при открытии сразу появляется клавиатура, чтобы быстрее добавить их"
+                            "При входе сразу появится клавиатура, если есть планы"
                         ) },
                         modifier = Modifier.clickable(
                             enabled = true,
@@ -403,7 +404,7 @@ fun RollingNumberText(targetValue: Int) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ThemeModalSheet(uiState: SettingsScreenUiState, viewModel: SettingsScreenViewModel, onDismiss: () -> Unit) {
-    val pics = listOf(R.drawable.pixil_frame_0, R.drawable.pixil_frame_0_1_, R.drawable.pixil_frame_0_2_, R.drawable.pixil_frame_0_3_)
+    val pics = listOf(R.drawable.snowflake, R.drawable.heart, R.drawable.christmas_hat, R.drawable.christmas_tree)
 
     val isInDarkTheme = uiState.isDarkThemeOn
     ModalBottomSheet(onDismissRequest = onDismiss) {

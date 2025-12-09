@@ -199,6 +199,11 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
 
     fun tempPlans(plans: String) {
         repo.setTempPlans(plans)
+        _uiState.update {
+            it.copy(
+                tempPlanInput = plans
+            )
+        }
     }
 
     fun updatePopupShown(value: Boolean) {
