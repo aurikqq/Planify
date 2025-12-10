@@ -71,6 +71,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.credentials.GetCredentialRequest
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
@@ -89,6 +90,7 @@ import com.aurikqq.planify.downloadApk
 import com.aurikqq.planify.installApk
 import com.aurikqq.planify.viewmodels.PlansScreenViewModel
 import com.aurikqq.planify.viewmodels.PlansScreenViewModelFactory
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -99,6 +101,8 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+
+import java.security.SecureRandom
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -530,5 +534,24 @@ fun UpdateLabel() {
             }
             Spacer(Modifier.size(12.dp))
         }
+    }
+}
+
+@Composable
+fun SignInBottomSheet(webClientId: String) {
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        val googleIdOption = GetGoogleIdOption.Builder()
+            .setFilterByAuthorizedAccounts(true)
+            .setServerClientId(webClientId)
+            .setNonce(generateSecureRandomNonce())
+            .build()
+
+        val request = GetCredentialRequest.Builder()
+            .addCredentialOption(googleIdOption)
+            .build()
+
+        //todo
     }
 }

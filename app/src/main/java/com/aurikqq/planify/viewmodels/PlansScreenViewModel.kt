@@ -1,5 +1,6 @@
 package com.aurikqq.planify.viewmodels
 
+import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -7,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.aurikqq.planify.R
 import com.aurikqq.planify.Repository
 import com.aurikqq.planify.screens.PlansScreenUiState
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -214,5 +217,23 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
                 isUpdatePopupShown = value
             )
         }
+    }
+
+    fun sendPlansToDatabase(plans: String, date: String) {
+        val db = Firebase.firestore
+
+        val plan = hashMapOf(
+            "plans" to plans,
+            "date" to date
+        )
+
+        db.collection("plans")
+            .add(plan)
+            .addOnSuccessListener { documentReference ->
+                Log.d("Sync", "DocumentSnapshot added with ID: ${documentReference.id}")
+            }
+            .addOnFailureListener { e ->
+                Log.w("Sync", "Error adding document", e)
+            }
     }
 }

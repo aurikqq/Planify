@@ -82,6 +82,9 @@ dependencies {
     implementation(libs.androidx.activity)
     implementation(libs.androidx.compose.animation.core)
     implementation(libs.coil.compose)
+    implementation(libs.firebase.firestore)
+    implementation(libs.play.services.auth)
+    implementation(libs.googleid)
 
     testImplementation(libs.junit)
 

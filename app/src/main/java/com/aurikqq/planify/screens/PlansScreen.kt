@@ -264,6 +264,7 @@ fun DailyPlansScreen(
     viewModel: PlansScreenViewModel = viewModel()
 ) {
     val top by animateDpAsState(if (uiState.havePlans) 24.dp else 48.dp, tween())
+
     LazyColumn(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = if (uiState.havePlans) Arrangement.Top else Arrangement.Center,
@@ -352,8 +353,12 @@ fun DailyPlansScreen(
             if (!uiState.havePlans) {
                 Button(
                     onClick = {
+                        val date = LocalDate.now()
+
                         viewModel.saveNewPlans()
+                        viewModel.sendPlansToDatabase(uiState.tempPlanInput, date.toString())
                         viewModel.tempPlans("")
+
                         createNotificationChannel(context)
                         AlarmScheduler.schedulePlansReset(context)
                     },
