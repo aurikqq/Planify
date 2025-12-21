@@ -38,7 +38,9 @@ open class SettingsScreenViewModel(private val repo: Repository) : ViewModel() {
                     plansNotificationsEnabled = repo.getPlansNotificationsEnabled(),
                     plansNotificationsCooldown = repo.getPlansNotificationsCooldown(),
                     resetNotificationsEnabled = repo.getResetNotificationsEnabled(),
-                    isDarkThemeOn = repo.getIsInDarkTheme()
+                    isDarkThemeOn = repo.getIsInDarkTheme(),
+                    isSignedIn = repo.getIsSignedIn(),
+                    email = repo.getEmail()
                 )
             }
         }
@@ -73,6 +75,29 @@ open class SettingsScreenViewModel(private val repo: Repository) : ViewModel() {
         _uiState.update {
             it.copy (
                 isDarkThemeOn = value
+            )
+        }
+    }
+
+    fun logIn(email: String) {
+        repo.setUserEmail(email)
+        repo.syncOnSignIn()
+
+        _uiState.update {
+            it.copy(
+                isSignedIn = true,
+                email = email
+            )
+        }
+    }
+
+    fun logOut() {
+        repo.setUserEmail("")
+
+        _uiState.update {
+            it.copy(
+                isSignedIn = false,
+                email = ""
             )
         }
     }

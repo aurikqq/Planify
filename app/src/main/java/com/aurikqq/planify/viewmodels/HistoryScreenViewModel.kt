@@ -3,8 +3,8 @@ package com.aurikqq.planify.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.aurikqq.planify.screens.HistoryScreenUiState
 import com.aurikqq.planify.Repository
+import com.aurikqq.planify.screens.HistoryScreenUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

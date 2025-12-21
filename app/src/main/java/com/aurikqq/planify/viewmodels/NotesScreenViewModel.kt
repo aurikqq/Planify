@@ -1,10 +1,13 @@
 package com.aurikqq.planify.viewmodels
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.aurikqq.planify.Repository
 import com.aurikqq.planify.screens.NotesScreenUiState
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,6 +40,8 @@ class NotesScreenViewModel(private val repo: Repository) : ViewModel() {
     private val _uiState = MutableStateFlow(NotesScreenUiState())
     val uiState: StateFlow<NotesScreenUiState> = _uiState.asStateFlow()
 
+    val db = Firebase.firestore
+
     init {
         loadInitialData()
     }
@@ -48,6 +53,8 @@ class NotesScreenViewModel(private val repo: Repository) : ViewModel() {
             _uiState.update {
                 it.copy (
                     notes = notes,
+                    isSignedIn = repo.getIsSignedIn(),
+                    email = repo.getEmail()
                 )
             }
         }
@@ -115,6 +122,8 @@ class NotesScreenViewModel(private val repo: Repository) : ViewModel() {
     fun setNote(note: Note = Note()) {
         val note = if(note.id.isBlank()) Note(UUID.randomUUID().toString(), _uiState.value.tempNoteTitle, _uiState.value.tempNote) else note
 
+        if (_uiState.value.isSignedIn)
+            sendNoteToDatabase(note)
         repo.saveNote(note)
         val newNotesList = repo.getNotesList()
 
@@ -130,6 +139,8 @@ class NotesScreenViewModel(private val repo: Repository) : ViewModel() {
     }
 
     fun removeNote(note: Note) {
+        if (_uiState.value.isSignedIn)
+            removeNoteFromDatabase(note)
         repo.removeNote(note)
         val newNotesList = repo.getNotesList()
 
@@ -140,5 +151,66 @@ class NotesScreenViewModel(private val repo: Repository) : ViewModel() {
         }
 
         //repo.sendToast("Удалил!", Toast.LENGTH_SHORT)
+    }
+
+    fun sendNoteToDatabase(note: Note) {
+        val noteHash = hashMapOf(
+            "title" to note.title,
+            "text" to note.text,
+            "is_expanded" to note.isExpanded,
+        )
+
+        db.collection(_uiState.value.email)
+            .document("notes")
+            .collection("notes_collection")
+            .document(note.id)
+            .set(noteHash)
+            .addOnSuccessListener { noteRef ->
+                Log.d("Notes Sync", "Note added: $noteRef")
+            }
+            .addOnFailureListener { e ->
+                Log.w("Notes Sync", "Error adding note", e)
+            }
+    }
+
+    fun getNotesFromDatabase() {
+        db.collection(_uiState.value.email)
+            .document("notes")
+            .collection("notes_collection")
+            .get()
+            .addOnSuccessListener { notes ->
+                val result = notes.map { note ->
+                    Note(
+                        note.id,
+                        note.get("title").toString(),
+                        note.get("text").toString(),
+                        note.get("is_expanded") as Boolean,
+                    )
+                }.toMutableList()
+                Log.d("Plans Sync", "Imported notes from DB")
+
+                _uiState.update {
+                    it.copy(
+                        notes = result
+                    )
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.w("Plans Sync", "Error importing notes from DB", e)
+            }
+    }
+
+    fun removeNoteFromDatabase(note: Note) {
+        db.collection(_uiState.value.email)
+            .document("notes")
+            .collection("notes_collection")
+            .document(note.id)
+            .delete()
+            .addOnSuccessListener { noteRef ->
+                Log.d("Notes Sync", "Note deleted: $noteRef")
+            }
+            .addOnFailureListener { e ->
+                Log.w("Notes Sync", "Error deleting note", e)
+            }
     }
 }

@@ -10,8 +10,8 @@ import com.aurikqq.planify.Repository
 import com.aurikqq.planify.screens.PlansScreenUiState
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -30,28 +30,25 @@ class PlansScreenViewModelFactory(
         throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
-
 class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
     private val _uiState = MutableStateFlow(PlansScreenUiState())
-    val uiState: StateFlow<PlansScreenUiState> = _uiState.asStateFlow()
+    val uiState = _uiState.asStateFlow()
+    val db = Firebase.firestore
 
     init {
         loadInitialData()
     }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     private fun loadInitialData() {
         viewModelScope.launch {
             val currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern(
                 "dd_MM_yyyy", Locale.getDefault()))
             val days = repo.getDaysList()
-            val plans = repo.getPlansForDate(currentDate)
             val havePlans = repo.havePlansForDate(currentDate)
-            val tempPlans = repo.getTempPlans()
             val isEditing = _uiState.value.isPlanEditing
-            val isFirstLaunch = repo.getIsFirstLaunch()
-            val isUpdatePopupShown = repo.getIsUpdatePopupShown()
-            val plansNotifications = repo.getPlansNotificationsEnabled()
-            val resetNotifications = repo.getResetNotificationsEnabled()
+
+            val user = repo.user
 
             _uiState.update {
                 it.copy (
@@ -59,15 +56,26 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
                     selectedPickerDate = currentDate,
                     days = days.sortedBy { date ->
                         LocalDate.parse(date.second, DateTimeFormatter.ofPattern("dd_MM_yyyy")) },
-                    plansForSelectedDate = plans,
-                    tempPlanInput = if (isEditing || !havePlans) tempPlans else "",
+                    plansForSelectedDate = repo.getPlansForDate(currentDate),
+                    tempPlanInput = if (isEditing || !havePlans) repo.getTempPlans() else "",
                     havePlans = havePlans,
-                    isFirstLaunch = isFirstLaunch,
-                    isUpdatePopupShown = isUpdatePopupShown,
-                    plansNotificationsEnabled = plansNotifications,
-                    resetNotificationsEnabled = resetNotifications
+                    isFirstLaunch = repo.getIsFirstLaunch(),
+                    isUpdatePopupShown = repo.getIsUpdatePopupShown(),
+                    plansNotificationsEnabled = repo.getPlansNotificationsEnabled(),
+                    resetNotificationsEnabled = repo.getResetNotificationsEnabled(),
+                    isSignedIn = repo.getIsSignedIn(),
+                    email = repo.getEmail()
                 )
             }
+        }
+    }
+
+    fun updateAccount() {
+        _uiState.update {
+            it.copy (
+                isSignedIn = repo.getIsSignedIn(),
+                email = repo.getEmail()
+            )
         }
     }
 
@@ -219,21 +227,44 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
         }
     }
 
-    fun sendPlansToDatabase(plans: String, date: String) {
-        val db = Firebase.firestore
-
+    fun sendPlansToDatabase(plans: String) {
         val plan = hashMapOf(
             "plans" to plans,
-            "date" to date
         )
 
-        db.collection("plans")
-            .add(plan)
-            .addOnSuccessListener { documentReference ->
-                Log.d("Sync", "DocumentSnapshot added with ID: ${documentReference.id}")
+        db.collection(_uiState.value.email)
+            .document("plans")
+            .collection("plans_collection")
+            .document(_uiState.value.selectedPickerDate)
+            .set(plan)
+            .addOnSuccessListener { planRef ->
+                Log.d("Plans Sync", "Plans added: $planRef")
             }
             .addOnFailureListener { e ->
-                Log.w("Sync", "Error adding document", e)
+                Log.w("Plans Sync", "Error adding plans", e)
+            }
+    }
+
+    fun getPlansFromDatabase(/*onResult: (String) -> Unit*/) {
+        db.collection(_uiState.value.email)
+            .document("plans")
+            .collection("plans_collection")
+            .document(_uiState.value.selectedPickerDate)
+            .get()
+            .addOnSuccessListener { plan ->
+                val plans = plan.get("plans")?.toString() ?: ""
+                Log.d("Plans Sync", "Plans found with ID: ${plan.id}")
+
+                _uiState.update {
+                    it.copy(
+                        plansForSelectedDate = plans,
+                        havePlans = plans.isNotEmpty()
+                    )
+                }
+                //onResult(plans)
+            }
+            .addOnFailureListener { e ->
+                Log.w("Plans Sync", "Error adding plans", e)
             }
     }
 }

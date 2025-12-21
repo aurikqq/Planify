@@ -85,6 +85,7 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation(libs.play.services.auth)
     implementation(libs.googleid)
+    implementation(libs.androidx.navigation.compose)
 
     testImplementation(libs.junit)
 

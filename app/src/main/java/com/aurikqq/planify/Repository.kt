@@ -2,16 +2,44 @@ package com.aurikqq.planify
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.core.content.edit
 import com.aurikqq.planify.viewmodels.Note
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.firestore
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.serialization.json.Json
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.Collections.emptyList
 import java.util.Locale
 
+data class User (
+    val email: String = "",
+    val plans: List<Pair<String, String>> = emptyList(),
+    val notes: MutableList<Note> = emptyList()
+)
+
 class Repository(private val sharedPreferences: SharedPreferences, private val context: Context) {
+    val db = Firebase.firestore
+
+    private val _user = MutableStateFlow(User())
+    val user: StateFlow<User> = _user.asStateFlow()
+
+    fun setUserEmail(email: String) {
+        _user.update {
+            it.copy(email = email)
+        }
+        sharedPreferences.edit {
+            putString(USER_EMAIL, email)
+        }
+    }
+
     fun getDaysList(): MutableList<Pair<String, String>> {
         val daysListJson = sharedPreferences.getString(KEY_DAILY_PLANS_LIST, "[]") ?: "[]"
         return Json.decodeFromString(daysListJson)
@@ -73,6 +101,18 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
             remove("${KEY_PLANS}_$date")
             remove("${KEY_HAVE_PLANS}_$date")
         }
+
+        db.collection(user.value.email)
+            .document("plans")
+            .collection("plans_collection")
+            .document(date)
+            .delete()
+            .addOnSuccessListener {
+                Log.d("Plans Sync", "Plans deleted for date $date")
+            }
+            .addOnFailureListener { e ->
+                Log.w("Plans Sync", "Error deleting plans", e)
+            }
     }
 
     fun removeFromHistory(date: String) {
@@ -244,5 +284,61 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
 
     fun getIsInDarkTheme() : Boolean {
         return sharedPreferences.getBoolean(IS_DARK_THEME_ON, false)
+    }
+
+    fun syncOnSignIn() {
+        db.collection(user.value.email)
+            .document("plans")
+            .collection("plans_collection")
+            .get()
+            .addOnSuccessListener { plans ->
+                val result = plans.map { plan ->
+                    Pair(
+                        plan.id,
+                        plan.get("plans") ?.toString() ?: ""
+                    )
+                }
+                Log.d("Plans Sync", "User plans imported from DB")
+                _user.update {
+                    it.copy(
+                        plans = result
+                    )
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.w("Plans Sync", "Error fetching plans from DB", e)
+            }
+
+        db.collection(user.value.email)
+            .document("notes")
+            .collection("notes_collection")
+            .get()
+            .addOnSuccessListener { notes ->
+                val result = notes.map { note ->
+                    Note(
+                        note.id,
+                        note.get("title") as String,
+                        note.get("text") as String,
+                        note.get("is_expanded") as Boolean
+                    )
+                }.toMutableList()
+                _user.update {
+                    it.copy(
+                        notes = result
+                    )
+                }
+                Log.d("Notes Sync", "User notes imported from DB")
+            }
+            .addOnFailureListener { e ->
+                Log.w("Notes Sync", "Error fetching notes from DB", e)
+            }
+    }
+
+    fun getIsSignedIn() : Boolean {
+        return sharedPreferences.getString(USER_EMAIL, "")?.isNotEmpty() ?: false
+    }
+
+    fun getEmail() : String {
+        return sharedPreferences.getString(USER_EMAIL, "") ?: ""
     }
 }

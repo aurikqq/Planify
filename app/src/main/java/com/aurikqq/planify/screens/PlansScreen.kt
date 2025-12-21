@@ -2,6 +2,7 @@ package com.aurikqq.planify.screens
 
 import android.content.Context
 import android.content.res.Configuration
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
@@ -56,6 +57,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -105,7 +107,9 @@ data class PlansScreenUiState(
     val isFirstLaunch: Boolean = true,
     val isUpdatePopupShown: Boolean = false,
     val plansNotificationsEnabled: Boolean = true,
-    val resetNotificationsEnabled: Boolean = true
+    val resetNotificationsEnabled: Boolean = true,
+    val isSignedIn: Boolean = false,
+    val email: String = "null"
 )
 
 @Composable
@@ -264,6 +268,22 @@ fun DailyPlansScreen(
     viewModel: PlansScreenViewModel = viewModel()
 ) {
     val top by animateDpAsState(if (uiState.havePlans) 24.dp else 48.dp, tween())
+    val bottomLabels = listOf(
+        stringResource(R.string.bottom_text_no_plans_0),
+        stringResource(R.string.bottom_text_no_plans_1),
+        stringResource(R.string.bottom_text_no_plans_2),
+        stringResource(R.string.bottom_text_no_plans_xmas),
+        stringResource(R.string.bottom_text_no_plans_xmas),
+        stringResource(R.string.bottom_text_no_plans_xmas_2),
+        stringResource(R.string.bottom_text_no_plans_xmas_2)
+    )
+
+    if (uiState.isSignedIn) {
+        LaunchedEffect(Unit) {
+            viewModel.getPlansFromDatabase()
+        }
+    }
+
 
     LazyColumn(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -353,10 +373,12 @@ fun DailyPlansScreen(
             if (!uiState.havePlans) {
                 Button(
                     onClick = {
-                        val date = LocalDate.now()
-
+                        viewModel.updateAccount()
+                        if (uiState.isSignedIn) {
+                            viewModel.sendPlansToDatabase(uiState.tempPlanInput)
+                            Log.d("DB", "Send (${uiState.tempPlanInput})")
+                        }
                         viewModel.saveNewPlans()
-                        viewModel.sendPlansToDatabase(uiState.tempPlanInput, date.toString())
                         viewModel.tempPlans("")
 
                         createNotificationChannel(context)
@@ -371,6 +393,8 @@ fun DailyPlansScreen(
                     ElevatedButton(
                         onClick = {
                             viewModel.addPlans()
+                            if (uiState.isSignedIn)
+                                viewModel.sendPlansToDatabase("${uiState.plansForSelectedDate}\n${uiState.tempPlanInput}")
                             viewModel.tempPlans("")
                         },
                         enabled = uiState.tempPlanInput.isNotBlank() && !uiState.isPlanEditing,
@@ -382,6 +406,8 @@ fun DailyPlansScreen(
                         ElevatedButton(
                             onClick = {
                                 viewModel.endEditingPlans()
+                                if (uiState.isSignedIn)
+                                    viewModel.sendPlansToDatabase(uiState.tempPlanInput)
                                 viewModel.tempPlans("")
                             },
                             enabled = uiState.tempPlanInput.isNotBlank(),
@@ -401,21 +427,18 @@ fun DailyPlansScreen(
         }
         item {
             Spacer(modifier = Modifier.size(32.dp))
+            //var text by remember { mutableStateOf("") }
+//            if (uiState.isSignedIn) {
+//                viewModel.getPlansFromDatabase()
+//            }
+
             Text(
                 text = if (uiState.havePlans)
                     stringResource(R.string.bottom_text_have_plans)
                 else if (uiState.isFirstLaunch)
                     stringResource(R.string.bottom_text_first_launch)
-                else{
-                    listOf(
-                        stringResource(R.string.bottom_text_no_plans_0),
-                        stringResource(R.string.bottom_text_no_plans_1),
-                        stringResource(R.string.bottom_text_no_plans_2),
-                        stringResource(R.string.bottom_text_no_plans_xmas),
-                        stringResource(R.string.bottom_text_no_plans_xmas),
-                        stringResource(R.string.bottom_text_no_plans_xmas_2),
-                        stringResource(R.string.bottom_text_no_plans_xmas_2)
-                    ).random()
+                else {
+                    bottomLabels.random()
                 }
                     ,
                 textAlign = TextAlign.Center,

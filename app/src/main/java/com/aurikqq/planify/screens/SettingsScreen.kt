@@ -1,6 +1,10 @@
 package com.aurikqq.planify.screens
 
+import android.content.Context
+import android.os.Build
+import android.util.Log
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
@@ -10,6 +14,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -18,6 +23,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -32,6 +38,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.AddTask
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.InvertColors
@@ -41,6 +48,9 @@ import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.Update
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBarDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -73,8 +83,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.GetCredentialCustomException
+import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.NoCredentialException
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.aurikqq.planify.AlarmScheduler
@@ -85,13 +105,21 @@ import com.aurikqq.planify.checkUpdates
 import com.aurikqq.planify.snowfall
 import com.aurikqq.planify.ui.theme.PlanifyTheme
 import com.aurikqq.planify.viewmodels.SettingsScreenViewModel
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.security.SecureRandom
+import java.util.Base64
 
 data class SettingsScreenUiState (
     val plansNotificationsEnabled: Boolean = true,
     val plansNotificationsCooldown: Float = 2f,
     val resetNotificationsEnabled: Boolean = true,
-    val isDarkThemeOn: Boolean = false
+    val isDarkThemeOn: Boolean = false,
+    val isSignedIn: Boolean = false,
+    val email: String = "null"
 )
 
 @Composable
@@ -106,6 +134,7 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsScreenViewMo
 
     var isChangelogShown by remember { mutableStateOf(false) }
     var isThemeModalSheetShown by remember { mutableStateOf(false) }
+    var isSignInBottomSheetShown by remember { mutableStateOf(false) }
 
     var tempPlansNotificationsEnabled by remember { mutableStateOf(uiState.plansNotificationsEnabled) }
     var tempPlansNotificationsCooldown by remember { mutableFloatStateOf(uiState.plansNotificationsCooldown) }
@@ -142,17 +171,31 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsScreenViewMo
         if (isThemeModalSheetShown) {
             ThemeModalSheet(uiState, viewModel) { isThemeModalSheetShown = false }
         }
+
+        if (isSignInBottomSheetShown) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                SignInBottomSheet(viewModel, "714660007842-dkrp22efm0qaek80jtr0lnokg5vtajv1.apps.googleusercontent.com")
+            }
+            else {
+                Toast.makeText(context, "Твоя версия Android стара и пока не поддерживается.", Toast.LENGTH_LONG).show()
+            }
+        }
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
-                .padding(
-                    top = innerPadding.calculateTopPadding(),
-                    bottom = WindowInsets.navigationBars.asPaddingValues()
-                        .calculateBottomPadding() + 80.dp
-                )
+                .padding(top = innerPadding.calculateTopPadding())
                 .snowfall()
         ) {
+            item {
+                if (!uiState.isSignedIn) {
+                    SignInOffer { isSignInBottomSheetShown = true }
+                } else {
+                    AccountInfo(uiState, viewModel)
+                }
+            }
+
             item {
                 SettingsCategory("Уведомления") {
                     ListItem(
@@ -336,6 +379,7 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsScreenViewMo
                             interactionSource = null,
                             indication = ripple(bounded = true)
                         )
+                            .padding(PaddingValues(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 80.dp))
                     )
                 }
             }
@@ -400,6 +444,106 @@ fun RollingNumberText(targetValue: Int) {
     )
 }
 
+@Composable
+fun SignInOffer(onClick: () -> Unit) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        //tonalElevation = if (isSystemInDarkTheme()) 1.dp else 0.dp,
+        //shadowElevation = 12.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+        modifier = Modifier.padding(16.dp)
+    ) {
+        Column(modifier = Modifier.padding(top = 16.dp)) {
+            Text(
+                "Синхронизация с Google",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    "Твои планы могут синхронизироваться на всех твоих устройстах! " +
+                            "Для этого просто войди через Google одним касанием - и не забывай о своих делах нигде." +
+                            "\n\nВсе твои данные остаются при тебе."
+                )
+
+                Spacer(Modifier.size(24.dp))
+
+                Box(Modifier.padding(bottom = 8.dp)) {
+                    Button(
+                        onClick = onClick,
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = ButtonColors(
+                            containerColor = Color(0xFFFFFFFF),
+                            contentColor = Color(0xFF1F1F1F),
+                            disabledContentColor = ButtonDefaults.buttonColors().disabledContentColor,
+                            disabledContainerColor = ButtonDefaults.buttonColors().disabledContainerColor
+                        ),
+                        modifier = Modifier
+                            .height(40.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Image(painter = painterResource(R.drawable.g_logo), null)
+                            Spacer(Modifier.size(10.dp))
+                            Text(
+                                "Войти через Google",
+                                fontFamily = FontFamily(Font(R.font.roboto_medium)),
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AccountInfo(uiState: SettingsScreenUiState, viewModel: SettingsScreenViewModel) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        //tonalElevation = if (isSystemInDarkTheme()) 1.dp else 0.dp,
+        //shadowElevation = 12.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+        modifier = Modifier.padding(16.dp)
+    ) {
+        Column(modifier = Modifier.padding(top = 16.dp)) {
+            Text(
+                "Твой аккаунт",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceAround,
+                ) {
+                    Icon(
+                        Icons.Default.AccountCircle,
+                        null,
+                        modifier = Modifier.size(40.dp)
+                    )
+                    Spacer(Modifier.size(8.dp))
+                    Text(uiState.email, fontWeight = FontWeight.SemiBold)
+                }
+
+                Spacer(Modifier.size(12.dp))
+                Text("Планы и записи синхронизируются с другими твоими устройствами через этот аккаунт Google - всё в сохранности.")
+                Spacer(Modifier.size(12.dp))
+
+                Box(contentAlignment = Alignment.CenterEnd, modifier = Modifier.fillMaxWidth()) {
+                    TextButton(onClick = { viewModel.logOut() }) {
+                        Text("Выйти")
+                    }
+                }
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -562,36 +706,76 @@ private fun SettingsCategory(titleText: String, isElevated: Boolean = true, cont
     }
 }
 
-//@Composable
-//fun FakeNavController(): NavHostController {
-//    val context = LocalContext.current
-//    val navController = remember { NavHostController(context) }
-//
-//    navController.navigatorProvider.addNavigator(ComposeNavigator())
-//
-//    val navGraph = navController.createGraph(startDestination = "settings") {
-//        composable("settings") { }
-//    }
-//
-//    navController.graph = navGraph
-//    return navController
-//}
-//
-//
-//@Preview(showSystemUi = true, showBackground = true)
-//@Composable
-//fun SettingsPreview() {
-//    val context = LocalContext.current
-//    val settingsViewModel: SettingsScreenViewModel = viewModel(
-//        factory = SettingsScreenViewModelFactory(
-//            Repository(
-//                context.getSharedPreferences(
-//                    PREFERENCES_NAME, Context.MODE_PRIVATE
-//                ),
-//                context
-//            )
-//        )
-//    )
-//
-//    //PlanifyTheme { SettingsScreen(settingsViewModel) }
-//}
+@RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+@Composable
+fun SignInBottomSheet(viewModel: SettingsScreenViewModel, webClientId: String) {
+    val context = LocalContext.current
+
+    LaunchedEffect(Unit) {
+        val googleIdOption = GetGoogleIdOption.Builder()
+            .setFilterByAuthorizedAccounts(false)
+            .setServerClientId(webClientId)
+            .setNonce(generateSecureRandomNonce())
+            .build()
+
+        val request = GetCredentialRequest.Builder()
+            .addCredentialOption(googleIdOption)
+            .build()
+
+        signIn(viewModel, request, context)
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+suspend fun signIn(viewModel: SettingsScreenViewModel,request: GetCredentialRequest, context: Context): Exception? {
+    val credentialManager = CredentialManager.create(context)
+    val failureMessage = "Unable to sign in"
+    val e: Exception? = null
+    val TAG = "Sign In"
+
+    delay(250)
+    try {
+        val result = credentialManager.getCredential(
+            request = request,
+            context = context,
+        )
+
+        val credential = result.credential
+        if (credential is CustomCredential &&
+            credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+        ) {
+            val email = GoogleIdTokenCredential.createFrom(credential.data).id
+
+            viewModel.logIn(email)
+        }
+
+        Toast.makeText(context, "Sign in successful!", Toast.LENGTH_SHORT).show()
+        Log.i(TAG, "Sign in successful!")
+    } catch (e: GetCredentialException) {
+        Toast.makeText(context, "Не получилось войти...", Toast.LENGTH_SHORT).show()
+        Log.e(TAG, "$failureMessage: Failure getting credentials", e)
+
+    } catch (e: GoogleIdTokenParsingException) {
+        Toast.makeText(context, "Не получилось войти...", Toast.LENGTH_SHORT).show()
+        Log.e(TAG, "$failureMessage: Issue with parsing received GoogleIdToken", e)
+
+    } catch (e: NoCredentialException) {
+        Toast.makeText(context, "Не получилось войти...", Toast.LENGTH_SHORT).show()
+        Log.e(TAG, "$failureMessage: No credentials found", e)
+        return e
+
+    } catch (e: GetCredentialCustomException) {
+        Toast.makeText(context, "Не получилось войти...", Toast.LENGTH_SHORT).show()
+        Log.e(TAG, "$failureMessage: Issue with custom credential request", e)
+
+    } catch (e: GetCredentialCancellationException) {
+        Log.e(TAG, "$failureMessage: Sign-in was cancelled", e)
+    }
+    return e
+}
+
+fun generateSecureRandomNonce(byteLength: Int = 32): String {
+    val randomBytes = ByteArray(byteLength)
+    SecureRandom.getInstanceStrong().nextBytes(randomBytes)
+    return Base64.getUrlEncoder().withoutPadding().encodeToString(randomBytes)
+}

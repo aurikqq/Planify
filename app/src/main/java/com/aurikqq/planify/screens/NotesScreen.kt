@@ -84,7 +84,9 @@ data class NotesScreenUiState(
     val tempNoteTitle: String = "",
     val tempNote: String = "",
     val isAddingNote: Boolean = false,
-    val isEditing: Boolean = false
+    val isEditing: Boolean = false,
+    val isSignedIn: Boolean = false,
+    val email: String = ""
 )
 
 @Composable
@@ -105,6 +107,12 @@ fun NotesScreen(modifier: Modifier = Modifier) {
     val uiState by viewModel.uiState.collectAsState()
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
+
+    if (uiState.isSignedIn) {
+        LaunchedEffect(Unit) {
+            viewModel.getNotesFromDatabase()
+        }
+    }
 
     val height by animateDpAsState(if (uiState.notes.isNotEmpty()) 24.dp else 48.dp, tween())
     LazyColumn(

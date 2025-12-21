@@ -27,6 +27,7 @@ const val PLANS_NOTIFICATIONS_ENABLED = "plans_notifications_enabled"
 const val RESET_NOTIFICATIONS_ENABLED = "notes_notifications_enabled"
 const val PLANS_NOTIFICATIONS_COOLDOWN = "plans_notifications_cooldown"
 const val IS_DARK_THEME_ON = "is_dark_theme_on"
+const val USER_EMAIL = "user_email"
 const val CHANGELOG = "Версия 0.3.2:\n" +
         "• В Планифай пришло Рождество и всякое такое, так что теперь тут сыпет снег, ну и всяких декораций ещё нарисовал (ага, сам! знаю, мне лучше больше не браться за это!), короче it's snowing\n\n" +
         "• Теперь надписи в меню планов чередуются: добавлены новые. Скоро так будет со всеми. Надписями.\n\n" +
