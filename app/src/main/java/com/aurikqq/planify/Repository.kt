@@ -116,11 +116,33 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
     }
 
     fun removeFromHistory(date: String) {
+        val email = sharedPreferences.getString(USER_EMAIL, "") ?: ""
+        val isSignedIn = email.isNotBlank()
+
         val dailyPlansHistory =
             sharedPreferences.getString(KEY_DAILY_PLANS_HISTORY, "[]") ?: "[]"
         val plansList = Json.decodeFromString<MutableList<Pair<String, String>>>(dailyPlansHistory)
         val newDate = reformatHistoryDate(date)
+        println("current: $date")
+        for (plan in plansList) {
+            println(plan.second)
+        }
         plansList.removeIf { it.second == date }
+
+        if (isSignedIn) {
+            println("deleting")
+            db.collection(email)
+                .document("plans")
+                .collection("plans_collection")
+                .document(reformatHistoryDate(date))
+                .delete()
+                .addOnSuccessListener { plansRef ->
+                    Log.d("Plans Sync", "Plans deleted: $plansRef")
+                }
+                .addOnFailureListener { e ->
+                    Log.w("Plans Sync", "Error deleting plans", e)
+                }
+        }
 
         val jsonPlansList = Json.encodeToString(plansList)
         sharedPreferences.edit {
@@ -215,6 +237,12 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
     fun getPlansList() : MutableList<Pair<String, String>> {
         val json = sharedPreferences.getString(KEY_DAILY_PLANS_HISTORY, "[]") ?: "[]"
         return Json.decodeFromString<MutableList<Pair<String, String>>>(json)
+    }
+
+    fun setPlansList(list: MutableList<Pair<String, String>>) {
+        sharedPreferences.edit {
+            putString(KEY_DAILY_PLANS_HISTORY, Json.encodeToString(list))
+        }
     }
 
     fun setTempNoteTitle(title: String) {

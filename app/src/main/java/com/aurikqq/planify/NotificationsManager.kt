@@ -62,7 +62,7 @@ class BootReceiver : BroadcastReceiver() {
             val calendar = Calendar.getInstance()
 
             val time = Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, 2)
+                set(Calendar.HOUR_OF_DAY, 0)
                 set(Calendar.MINUTE, 0)
                 set(Calendar.SECOND, 0)
             }

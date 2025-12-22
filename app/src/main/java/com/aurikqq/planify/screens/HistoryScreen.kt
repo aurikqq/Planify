@@ -36,6 +36,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -56,7 +57,9 @@ import com.aurikqq.planify.viewmodels.HistoryScreenViewModel
 import com.aurikqq.planify.viewmodels.HistoryScreenViewModelFactory
 
 data class HistoryScreenUiState(
-    val plansList: MutableList<Pair<String, String>> = mutableListOf()
+    val plansList: MutableList<Pair<String, String>> = mutableListOf(),
+    val email: String = "",
+    val isSignedIn: Boolean = false
 )
 
 @Composable
@@ -74,6 +77,12 @@ fun HistoryScreen() {
     )
 
     val uiState by viewModel.uiState.collectAsState()
+
+    if (uiState.isSignedIn) {
+        LaunchedEffect(Unit) {
+            viewModel.getPlansFromDatabase()
+        }
+    }
 
     val height by animateDpAsState(if (uiState.plansList.isNotEmpty()) 24.dp else 48.dp, tween())
     LazyColumn(
@@ -140,7 +149,8 @@ fun HistoryScreen() {
                             IconButton(
                                 onClick = {
                                     viewModel.removeFromHistory(plan.second)
-                                    uiState.plansList.remove(plan) },
+                                    uiState.plansList.remove(plan)
+                                },
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Icon(Icons.Default.Delete, null)
