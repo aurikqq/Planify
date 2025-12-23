@@ -275,7 +275,9 @@ fun DailyPlansScreen(
         stringResource(R.string.bottom_text_no_plans_xmas),
         stringResource(R.string.bottom_text_no_plans_xmas),
         stringResource(R.string.bottom_text_no_plans_xmas_2),
-        stringResource(R.string.bottom_text_no_plans_xmas_2)
+        stringResource(R.string.bottom_text_no_plans_xmas_3),
+        stringResource(R.string.bottom_text_no_plans_xmas_4),
+        stringResource(R.string.bottom_text_no_plans_xmas_5)
     )
 
     if (uiState.isSignedIn) {

@@ -31,4 +31,7 @@
     <string name="bottom_text_no_plans_2">Впереди - новый день, а вчерашний подошёл к концу. Пора поразмыслить над списком дел на сегодня!</string>
     <string name="bottom_text_no_plans_xmas">Может, снаружи это не так, но в Planify уже царит рождественская атмосфера.\nНе забывай о себе - тем более в такое время года ❄️</string>
     <string name="bottom_text_no_plans_xmas_2">cold outside\nbut stay warm inside of you ❤️</string>
+    <string name="bottom_text_no_plans_xmas_3" translatable="false">Let is snow, let it snow, let it snow...</string>
+    <string name="bottom_text_no_plans_xmas_4">Happy holidays!</string>
+    <string name="bottom_text_no_plans_xmas_5">In the new year, all your plans will definitely come true, and your efforts will pay off.</string>
 </resources>

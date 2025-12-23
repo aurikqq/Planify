@@ -97,7 +97,7 @@ fun HistoryScreen() {
             .snowfall()
     ) {
         if (uiState.plansList.isNotEmpty()) {
-            items(uiState.plansList.reversed()) { plan ->
+            items(uiState.plansList) { plan ->
                 var isCardExpanded by remember { mutableStateOf(plan == uiState.plansList.last()) }
                 val deg by animateFloatAsState(if (isCardExpanded) 180f else 0f)
                 Card(

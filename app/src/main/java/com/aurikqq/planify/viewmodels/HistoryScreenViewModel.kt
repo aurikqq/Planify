@@ -44,7 +44,7 @@ class HistoryScreenViewModel(private val repo: Repository) : ViewModel() {
 
             _uiState.update {
                 it.copy (
-                    plansList = list,
+                    plansList = list.reversed().toMutableList(),
                     email = repo.getEmail(),
                     isSignedIn = repo.getIsSignedIn()
                 )
@@ -58,7 +58,7 @@ class HistoryScreenViewModel(private val repo: Repository) : ViewModel() {
 
         _uiState.update {
             it.copy (
-                plansList = list
+                plansList = list.reversed().toMutableList()
             )
         }
 

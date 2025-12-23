@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.aurikqq.planify.KEY_DAILY_PLANS_LIST
 import com.aurikqq.planify.R
 import com.aurikqq.planify.Repository
 import com.aurikqq.planify.screens.PlansScreenUiState
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -245,7 +247,7 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
             }
     }
 
-    fun getPlansFromDatabase(/*onResult: (String) -> Unit*/) {
+    fun getPlanFromDatabase() {
         db.collection(_uiState.value.email)
             .document("plans")
             .collection("plans_collection")
@@ -261,7 +263,32 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
                         havePlans = plans.isNotEmpty()
                     )
                 }
-                //onResult(plans)
+            }
+            .addOnFailureListener { e ->
+                Log.w("Plans Sync", "Error adding plans", e)
+            }
+    }
+
+    fun getPlansFromDatabase() {
+        db.collection(_uiState.value.email)
+            .document("plans")
+            .collection("plans_collection")
+            .get()
+            .addOnSuccessListener { plans ->
+                val result = plans.map { plan ->
+                    Pair(
+                        plan.get("plans").toString(),
+                        plan.id
+                    )
+                }
+                Log.d("Plans Sync", "Imported plans from DB")
+
+                _uiState.update {
+                    it.copy(
+                        days = result
+                    )
+                }
+                repo.saveDaysList(result.toMutableList())
             }
             .addOnFailureListener { e ->
                 Log.w("Plans Sync", "Error adding plans", e)

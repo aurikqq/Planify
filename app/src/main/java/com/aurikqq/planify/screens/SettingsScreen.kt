@@ -47,11 +47,13 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.Update
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.BottomAppBarDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -88,6 +90,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.DialogProperties
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
@@ -135,6 +138,7 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsScreenViewMo
     var isChangelogShown by remember { mutableStateOf(false) }
     var isThemeModalSheetShown by remember { mutableStateOf(false) }
     var isSignInBottomSheetShown by remember { mutableStateOf(false) }
+    var isSyncAlertModalShown by remember { mutableStateOf(false) }
 
     var tempPlansNotificationsEnabled by remember { mutableStateOf(uiState.plansNotificationsEnabled) }
     var tempPlansNotificationsCooldown by remember { mutableFloatStateOf(uiState.plansNotificationsCooldown) }
@@ -177,20 +181,30 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsScreenViewMo
                 SignInBottomSheet(viewModel, "714660007842-dkrp22efm0qaek80jtr0lnokg5vtajv1.apps.googleusercontent.com")
             }
             else {
-                Toast.makeText(context, "Твоя версия Android стара и пока не поддерживается.", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "Твоя версия Android пока не поддерживается.", Toast.LENGTH_LONG).show()
             }
+        }
+
+        if (isSyncAlertModalShown) {
+            SyncAlertModal(onClick = {
+                isSignInBottomSheetShown = true
+                isSyncAlertModalShown = false
+            },
+            onDismiss = { isSyncAlertModalShown = false })
         }
 
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
-                .padding(top = innerPadding.calculateTopPadding())
+                .padding(PaddingValues(
+                    top = innerPadding.calculateTopPadding(),
+                    bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 80.dp))
                 .snowfall()
         ) {
             item {
                 if (!uiState.isSignedIn) {
-                    SignInOffer { isSignInBottomSheetShown = true }
+                    SignInOffer { isSyncAlertModalShown = true }
                 } else {
                     AccountInfo(uiState, viewModel)
                 }
@@ -379,7 +393,6 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsScreenViewMo
                             interactionSource = null,
                             indication = ripple(bounded = true)
                         )
-                            .padding(PaddingValues(bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 80.dp))
                     )
                 }
             }
@@ -660,6 +673,31 @@ fun ThemeBox(title: String, isSelected: Boolean, onClick: () -> Unit) {
             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
         )
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SyncAlertModal(onClick: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text("Постой...")
+        },
+        text = {
+            Text("Если в аккаунте, куда ты войдёшь, есть сохранённые планы или записи, то они перезапишут те, что сохранены на этом устройстве!\n\n" +
+                    "Запиши их куда-нибудь, чтобы потом перенести в аккаунт.")
+        },
+        confirmButton = {
+            ElevatedButton(onClick = onClick) {
+                Text("Продолжай")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Отмени")
+            }
+        }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
