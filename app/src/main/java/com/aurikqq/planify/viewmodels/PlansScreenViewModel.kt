@@ -200,10 +200,11 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
         }
     }
 
-    fun removeDay(day: Pair<String, String>) {
+    fun removeDay(day: Pair<String, String>, removePlansForCurrentDate: Boolean = true) {
         val currentDaysList = _uiState.value.days.toMutableList()
         currentDaysList.remove(day)
-        repo.removePlansForDate(day.second)
+        if (removePlansForCurrentDate)
+            repo.removePlansForDate(day.second)
         repo.saveDaysList(currentDaysList)
 
         _uiState.update { it.copy(days = currentDaysList.sortedBy { date ->

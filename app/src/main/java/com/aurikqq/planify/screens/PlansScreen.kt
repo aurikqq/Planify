@@ -60,6 +60,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -196,7 +197,7 @@ fun DaysList(
 
     for (day in uiState.days) {
         if (day.second == uiState.currentDate) {
-            viewModel.removeDay(day)
+            viewModel.removeDay(day, false)
         }
     }
 
@@ -273,12 +274,13 @@ fun DailyPlansScreen(
         stringResource(R.string.bottom_text_no_plans_1),
         stringResource(R.string.bottom_text_no_plans_2),
         stringResource(R.string.bottom_text_no_plans_xmas),
-        stringResource(R.string.bottom_text_no_plans_xmas),
         stringResource(R.string.bottom_text_no_plans_xmas_2),
         stringResource(R.string.bottom_text_no_plans_xmas_3),
         stringResource(R.string.bottom_text_no_plans_xmas_4),
         stringResource(R.string.bottom_text_no_plans_xmas_5)
     )
+
+    val labelText = remember { bottomLabels.random() }
 
     if (uiState.isSignedIn) {
         LaunchedEffect(Unit) {
@@ -299,7 +301,7 @@ fun DailyPlansScreen(
             .imePadding()
             .snowfall()
     ) {
-        if (uiState.havePlans) {
+        if (uiState.havePlans && uiState.plansForSelectedDate.isNotBlank()) {
             item {
                 Card(
                     elevation = CardDefaults.cardElevation(0.dp),
@@ -440,7 +442,7 @@ fun DailyPlansScreen(
                 else if (uiState.isFirstLaunch)
                     stringResource(R.string.bottom_text_first_launch)
                 else {
-                    bottomLabels.random()
+                    labelText
                 }
                     ,
                 textAlign = TextAlign.Center,

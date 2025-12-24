@@ -158,7 +158,7 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsScreenViewMo
                     }
                     item {
                         AsyncImage(
-                            model = "https://i.pinimg.com/736x/89/2b/4d/892b4ddaa245216690b0e066a500a5d1.jpg",
+                            model = "https://i.pinimg.com/736x/88/85/24/8885242dde09916e803b59ccfe4969e8.jpg",
                             contentDescription = null
                         )
                     }
@@ -478,7 +478,7 @@ fun SignInOffer(onClick: () -> Unit) {
                 Text(
                     "Твои планы могут синхронизироваться на всех твоих устройстах! " +
                             "Для этого просто войди через Google одним касанием - и не забывай о своих делах нигде." +
-                            "\n\nВсе твои данные остаются при тебе."
+                            "\n\nВсе твои данные остаются при тебе.\nПока что синхронизация тестируется."
                 )
 
                 Spacer(Modifier.size(24.dp))

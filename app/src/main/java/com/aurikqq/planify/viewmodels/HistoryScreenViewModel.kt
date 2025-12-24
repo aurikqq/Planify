@@ -44,7 +44,7 @@ class HistoryScreenViewModel(private val repo: Repository) : ViewModel() {
 
             _uiState.update {
                 it.copy (
-                    plansList = list.reversed().toMutableList(),
+                    plansList = list.toMutableList(),
                     email = repo.getEmail(),
                     isSignedIn = repo.getIsSignedIn()
                 )
@@ -58,7 +58,7 @@ class HistoryScreenViewModel(private val repo: Repository) : ViewModel() {
 
         _uiState.update {
             it.copy (
-                plansList = list.reversed().toMutableList()
+                plansList = list.toMutableList()
             )
         }
 
@@ -77,7 +77,7 @@ class HistoryScreenViewModel(private val repo: Repository) : ViewModel() {
             .addOnSuccessListener { plans ->
                 val result = plans.mapNotNull { plan ->
                     val formattedDate = LocalDate.parse(plan.id, DateTimeFormatter.ofPattern("dd_MM_yyyy"))
-                    if (now.isAfter(formattedDate) || now.isEqual(formattedDate)) {
+                    if (now.isAfter(formattedDate)) {
                         Pair(plan.get("plans").toString(), repo.reformatDate(plan.id))
                     } else null
                 }.toMutableList()

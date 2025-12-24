@@ -149,7 +149,6 @@ fun HistoryScreen() {
                             IconButton(
                                 onClick = {
                                     viewModel.removeFromHistory(plan.second)
-                                    uiState.plansList.remove(plan)
                                 },
                                 shape = RoundedCornerShape(12.dp)
                             ) {

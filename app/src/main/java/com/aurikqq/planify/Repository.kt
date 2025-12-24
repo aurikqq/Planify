@@ -97,22 +97,26 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
     }
 
     fun removePlansForDate(date: String) {
+        val email = sharedPreferences.getString(USER_EMAIL, "") ?: ""
+
         sharedPreferences.edit {
             remove("${KEY_PLANS}_$date")
             remove("${KEY_HAVE_PLANS}_$date")
         }
 
-        db.collection(user.value.email)
-            .document("plans")
-            .collection("plans_collection")
-            .document(date)
-            .delete()
-            .addOnSuccessListener {
-                Log.d("Plans Sync", "Plans deleted for date $date")
-            }
-            .addOnFailureListener { e ->
-                Log.w("Plans Sync", "Error deleting plans", e)
-            }
+        if (email.isNotBlank()) {
+            db.collection(email)
+                .document("plans")
+                .collection("plans_collection")
+                .document(date)
+                .delete()
+                .addOnSuccessListener {
+                    Log.d("Plans Sync", "Plans deleted for date $date")
+                }
+                .addOnFailureListener { e ->
+                    Log.w("Plans Sync", "Error deleting plans", e)
+                }
+        }
     }
 
     fun removeFromHistory(date: String) {
@@ -157,6 +161,9 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
     }
 
     fun addDateFromPicker(date: String) {
+        val email = sharedPreferences.getString(USER_EMAIL, "") ?: ""
+        val isSignedIn = email.isNotBlank()
+
         val dayPlansAndDatePair = Pair("", date)
         var datesJson =
             sharedPreferences.getString(KEY_DAILY_PLANS_LIST, "") ?: ""
@@ -168,6 +175,21 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
 
         sharedPreferences.edit {
             putString(KEY_DAILY_PLANS_LIST, datesJson)
+        }
+
+        if (isSignedIn) {
+            val plans = hashMapOf(
+                "plans" to ""
+            )
+
+            db.collection(email)
+                .document("plans")
+                .collection("plans_collection")
+                .document(date)
+                .set(plans)
+                .addOnSuccessListener {
+                    Log.d("Plans Sync", "Added date: $date")
+                }
         }
     }
 
