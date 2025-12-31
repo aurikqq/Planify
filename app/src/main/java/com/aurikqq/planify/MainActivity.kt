@@ -219,7 +219,7 @@ fun AppActivity() {
                                     )
                                 }
                             ) {
-                                SettingsScreen(navController, settingsViewModel)
+                                SettingsScreen(settingsViewModel)
                             }
                         }
                     }

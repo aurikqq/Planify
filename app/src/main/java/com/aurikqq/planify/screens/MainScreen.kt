@@ -7,14 +7,20 @@ import android.content.res.Configuration
 import android.os.Build
 import android.provider.Settings
 import android.widget.Toast
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -33,6 +39,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AcUnit
 import androidx.compose.material.icons.filled.Add
@@ -67,6 +75,10 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -98,6 +110,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -119,7 +132,7 @@ fun MainScreen(
     for (date in uiState.days) { chosenDates.add(date.second) }
 
     var selectedTab by rememberSaveable { mutableStateOf(PLANS_SCREEN) }
-    var isHistoryShown by remember { mutableStateOf(false) }
+    val isHistoryShown = selectedTab == HISTORY_SCREEN
     var preHistoryScreen by remember { mutableStateOf(PLANS_SCREEN) }
 
     val datePickerState = rememberDatePickerState(
@@ -171,6 +184,18 @@ fun MainScreen(
         }
     }
 
+    LaunchedEffect(Unit) {
+        for (day in uiState.days) {
+            val format = DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())
+            val itemDate = LocalDate.parse(day.second, format)
+            val currentDate = LocalDate.now()
+
+            if (currentDate.isAfter(itemDate)) {
+                viewModel.removeDay(day)
+            }
+        }
+    }
+
     if (uiState.isDatePickerShown) {
         val selectedDate = datePickerState.selectedDateMillis?.let {
             Instant.ofEpochMilli(it)
@@ -219,34 +244,28 @@ fun MainScreen(
     if (orientation == Configuration.ORIENTATION_PORTRAIT) {
             Column {
                 TopBar(uiState, drawerState, scope, isHistoryShown) {
-                    isHistoryShown = !isHistoryShown
-                    if (selectedTab != HISTORY_SCREEN) {
-                        preHistoryScreen = selectedTab
-                        selectedTab = HISTORY_SCREEN
-                    }
-                    else {
-                        selectedTab = preHistoryScreen
-                    }
-                }
-
-                AnimatedVisibility(visible = selectedTab == PLANS_SCREEN || selectedTab == NOTES_SCREEN,
-                    enter = fadeIn() + expandHorizontally(),
-                    exit = fadeOut() + shrinkHorizontally()
-                ) {
-                    TabsBar(context, viewModel, uiState) { route ->
-                        selectedTab = route
-                    }
+                    selectedTab = if (!isHistoryShown) preHistoryScreen
+                        .also { preHistoryScreen = selectedTab }
+                        .let { HISTORY_SCREEN }
+                    else preHistoryScreen
                 }
 
                 Surface {
-                    when (selectedTab) {
-                        PLANS_SCREEN -> DailyPlansScreen(
-                            context,
-                            uiState,
-                            viewModel
-                        )
-                        NOTES_SCREEN -> NotesScreen()
-                        HISTORY_SCREEN -> HistoryScreen()
+                    AnimatedContent (
+                        targetState = selectedTab,
+                        transitionSpec = {
+                            slideInHorizontally() + fadeIn() togetherWith
+                                    slideOutHorizontally() + fadeOut()
+                        }
+                    ) { screen ->
+                        when (screen) {
+                            in listOf(PLANS_SCREEN, NOTES_SCREEN) -> {
+                                TabsBar(context, viewModel, uiState) { route ->
+                                    selectedTab = route
+                                }
+                            }
+                            HISTORY_SCREEN -> HistoryScreen()
+                        }
                     }
                 }
             }
@@ -332,25 +351,7 @@ fun DrawerContent(
                 tint = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.size(8.dp))
-            Box {
-                Text(
-                    text = "Planify",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Image(painterResource(
-                    R.drawable.christmas_hat),
-                    null,
-                    modifier = Modifier
-                        .size(20.dp)
-                        .offset(65.dp, (-5).dp)
-                        .graphicsLayer {
-                            scaleX = -1f
-                        }
-                        .rotate(-20f)
-                )
-            }
+            PlanifyTitle()
         }
 
         LazyColumn(
@@ -405,11 +406,53 @@ fun DrawerContent(
 }
 
 @Composable
+fun PlanifyTitle() {
+    val inline = mapOf(
+        "hat" to InlineTextContent(
+            Placeholder(
+                width = 20.sp,
+                height = 26.sp,
+                placeholderVerticalAlign = PlaceholderVerticalAlign.TextTop
+            )
+        ) {
+            Box {
+                Text(
+                    text = "y",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Image(
+                    painterResource(R.drawable.christmas_hat),
+                    null,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .align(Alignment.TopCenter)
+                        .offset(2.dp, (-5).dp)
+                        .graphicsLayer { scaleX = -1f }
+                        .rotate(-20f)
+                )
+            }
+        }
+    )
+    Text(
+        text = buildAnnotatedString {
+            append("Planif")
+            appendInlineContent("hat")
+        },
+        inlineContent = inline,
+        fontSize = 22.sp,
+        fontWeight = FontWeight.Bold,
+        color = MaterialTheme.colorScheme.primary
+    )
+}
+
+@Composable
 fun UpdateDialog(onClickOrDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onClickOrDismiss,
         title = {
-            Text("Что поменялось в этой версии:")
+            Text("\uD83C\uDF84 Что поменялось в этой версии:")
         },
         text = {
             LazyColumn {
@@ -418,7 +461,7 @@ fun UpdateDialog(onClickOrDismiss: () -> Unit) {
                 }
                 item {
                     AsyncImage(
-                        model = "https://i.pinimg.com/736x/89/2b/4d/892b4ddaa245216690b0e066a500a5d1.jpg",
+                        model = "https://i.pinimg.com/736x/26/90/2d/26902dc92d66500f3bab3f602d3fe4f2.jpg",
                         contentDescription = null
                     )
                 }

@@ -231,7 +231,7 @@ fun showPlansNotification(
         context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
 
     val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-        .setSmallIcon(R.drawable.icon_with_top)
+        .setSmallIcon(R.drawable.ic_launcher_monochrome)
         .setContentTitle(title)
         .setContentText(text)
         .setPriority(NotificationCompat.PRIORITY_DEFAULT)
@@ -258,7 +258,7 @@ fun showPlansResetNotification(context: Context) {
     val plans = repo.getPlansForDate(currentDate)
 
     val resetNotificationTexts =
-        if (plans == "")
+        if (plans.isBlank())
             listOf(
                 context.getString(R.string.reset_notification_text_01),
                 context.getString(R.string.reset_notification_text_02),
@@ -279,7 +279,7 @@ fun showPlansResetNotification(context: Context) {
         context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
 
     val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-        .setSmallIcon(R.drawable.icon_with_top)
+        .setSmallIcon(R.drawable.ic_launcher_monochrome)
         .setContentTitle(context.getString(R.string.reset_notification_title))
         .setContentText(resetNotificationTexts.random())
         .setPriority(NotificationCompat.PRIORITY_LOW)

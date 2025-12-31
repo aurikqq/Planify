@@ -37,7 +37,12 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.Close
@@ -61,12 +66,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -75,6 +82,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -288,7 +296,6 @@ fun DailyPlansScreen(
         }
     }
 
-
     LazyColumn(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = if (uiState.havePlans) Arrangement.Top else Arrangement.Center,
@@ -299,6 +306,7 @@ fun DailyPlansScreen(
         modifier = Modifier
             .fillMaxSize()
             .imePadding()
+            .animateContentSize()
             .snowfall()
     ) {
         if (uiState.havePlans && uiState.plansForSelectedDate.isNotBlank()) {
@@ -306,7 +314,6 @@ fun DailyPlansScreen(
                 Card(
                     elevation = CardDefaults.cardElevation(0.dp),
                     modifier = Modifier
-                        .animateContentSize()
                         .padding(8.dp)
                         .widthIn(max = 800.dp)
                         .fillMaxWidth()
@@ -339,6 +346,7 @@ fun DailyPlansScreen(
                     value = uiState.tempPlanInput,
                     label = { Text(stringResource(R.string.label_edit_plans)) },
                     onValueChange = { viewModel.onTempPlanInputChange(it) },
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                     modifier = Modifier
                         .padding(8.dp)
                         .defaultMinSize(minHeight = 120.dp)
@@ -348,7 +356,6 @@ fun DailyPlansScreen(
                 Card(
                     elevation = CardDefaults.cardElevation(4.dp),
                     modifier = Modifier
-                        .animateContentSize()
                         .widthIn(max = 800.dp)
                         .fillMaxWidth()
                         .defaultMinSize(minHeight = 120.dp)
@@ -356,6 +363,7 @@ fun DailyPlansScreen(
                 ) {
                     OutlinedTextField(
                         value = uiState.tempPlanInput,
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                         label = {
                             Text(
                                 text = if (uiState.havePlans) stringResource(R.string.label_add_plans) else stringResource(
@@ -431,10 +439,6 @@ fun DailyPlansScreen(
         }
         item {
             Spacer(modifier = Modifier.size(32.dp))
-            //var text by remember { mutableStateOf("") }
-//            if (uiState.isSignedIn) {
-//                viewModel.getPlansFromDatabase()
-//            }
 
             Text(
                 text = if (uiState.havePlans)

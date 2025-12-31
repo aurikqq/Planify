@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.Delete
@@ -65,6 +66,7 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -125,12 +127,13 @@ fun NotesScreen(modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxSize()
             .imePadding()
+            .animateContentSize()
             .snowfall()
     ) {
         if (uiState.notes.isNotEmpty()) {
             items(uiState.notes) { note ->
                 NoteCard(note, viewModel, uiState,
-                    keyboardController, focusRequester, Modifier.animateItem())
+                    keyboardController, focusRequester, Modifier)
             }
 
             item {
@@ -146,7 +149,7 @@ fun NotesScreen(modifier: Modifier = Modifier) {
                 }
                 else {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        EmptyNoteCard(uiState, viewModel, Modifier.animateItem(placementSpec = spring()))
+                        EmptyNoteCard(uiState, viewModel, Modifier)
 
                         Spacer(Modifier.size(32.dp))
 
@@ -198,7 +201,6 @@ fun NotesScreen(modifier: Modifier = Modifier) {
                 Button(
                     onClick = { viewModel.setNote() },
                     enabled = uiState.tempNote.isNotBlank() && uiState.tempNoteTitle.isNotBlank(),
-                    modifier = Modifier.animateItem(placementSpec = spring())
                 ) {
                     Text(stringResource(R.string.button_set_plans))
                 }
@@ -253,6 +255,7 @@ fun NoteCard(
                             onClick = {
                                 note.isExpanded = !note.isExpanded
                                 viewModel.setNote(note)
+                                viewModel.sendNoteToDatabase(note)
                                 isExpanded = !isExpanded
                             },
                             shape = RoundedCornerShape(12.dp)
@@ -286,6 +289,7 @@ fun NoteCard(
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onBackground
                         ),
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                         modifier = Modifier
                             .padding(bottom = 8.dp)
                             .fillMaxWidth()
@@ -304,6 +308,7 @@ fun NoteCard(
                         textStyle = LocalTextStyle.current.copy(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         ),
+                        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                         modifier = Modifier
                             .fillMaxWidth()
                             .focusRequester(focusRequester)
@@ -406,6 +411,7 @@ fun EmptyNoteCard(uiState: NotesScreenUiState, viewModel: NotesScreenViewModel, 
                     fontWeight = FontWeight.Medium,
                 ),
                 placeholder = { Text("Как назвать запись?") },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 modifier = modifier
                     .height(52.dp)
                     .defaultMinSize(minWidth = 240.dp)
@@ -417,6 +423,7 @@ fun EmptyNoteCard(uiState: NotesScreenUiState, viewModel: NotesScreenViewModel, 
                 value = uiState.tempNote,
                 onValueChange = { viewModel.onNoteTextInput(it) },
                 placeholder = { Text("Что стоит запомнить?") },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 modifier = modifier
                     .defaultMinSize(minHeight = 120.dp)
                     .sizeIn(maxHeight = 800.dp)

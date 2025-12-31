@@ -2,6 +2,7 @@ package com.aurikqq.planify.screens
 
 import android.content.Context
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -94,6 +95,7 @@ fun HistoryScreen() {
         ),
         modifier = Modifier
             .fillMaxSize()
+            .animateContentSize()
             .snowfall()
     ) {
         if (uiState.plansList.isNotEmpty()) {
@@ -130,7 +132,6 @@ fun HistoryScreen() {
                                     null,
                                     modifier = Modifier
                                         .rotate(deg)
-                                        .animateItem()
                                 )
                             }
                         }

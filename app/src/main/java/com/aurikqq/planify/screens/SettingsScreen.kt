@@ -1,5 +1,6 @@
 package com.aurikqq.planify.screens
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Build
 import android.util.Log
@@ -27,11 +28,9 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -45,9 +44,7 @@ import androidx.compose.material.icons.filled.InvertColors
 import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsNone
-import androidx.compose.material.icons.filled.Update
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.BottomAppBarDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
@@ -77,7 +74,6 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -90,7 +86,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.DialogProperties
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
@@ -98,13 +93,10 @@ import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialCustomException
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.NoCredentialException
-import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.aurikqq.planify.AlarmScheduler
 import com.aurikqq.planify.CHANGELOG
 import com.aurikqq.planify.R
-import com.aurikqq.planify.SETTINGS_SCREEN
-import com.aurikqq.planify.checkUpdates
 import com.aurikqq.planify.snowfall
 import com.aurikqq.planify.ui.theme.PlanifyTheme
 import com.aurikqq.planify.viewmodels.SettingsScreenViewModel
@@ -112,7 +104,6 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.security.SecureRandom
 import java.util.Base64
 
@@ -125,15 +116,12 @@ data class SettingsScreenUiState (
     val email: String = "null"
 )
 
+@SuppressLint("NewApi")
 @Composable
-fun SettingsScreen(navController: NavController, viewModel: SettingsScreenViewModel) {
+fun SettingsScreen(viewModel: SettingsScreenViewModel) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
-    val scope = rememberCoroutineScope()
-
-    val navBackStackEntry = remember(navController.currentBackStackEntry) {
-        navController.getBackStackEntry(SETTINGS_SCREEN)
-    }
+    //val scope = rememberCoroutineScope()
 
     var isChangelogShown by remember { mutableStateOf(false) }
     var isThemeModalSheetShown by remember { mutableStateOf(false) }
@@ -149,7 +137,7 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsScreenViewMo
             AlertDialog(
                 onDismissRequest = { isChangelogShown = false },
                 title = {
-                    Text("Что поменялось в этой версии:")
+                    Text("\uD83C\uDF84 Что поменялось в этой версии:")
                 },
                 text = {
                 LazyColumn {
@@ -158,7 +146,7 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsScreenViewMo
                     }
                     item {
                         AsyncImage(
-                            model = "https://i.pinimg.com/736x/88/85/24/8885242dde09916e803b59ccfe4969e8.jpg",
+                            model = "https://i.pinimg.com/736x/26/90/2d/26902dc92d66500f3bab3f602d3fe4f2.jpg",
                             contentDescription = null
                         )
                     }
@@ -177,12 +165,7 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsScreenViewMo
         }
 
         if (isSignInBottomSheetShown) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                SignInBottomSheet(viewModel, "714660007842-dkrp22efm0qaek80jtr0lnokg5vtajv1.apps.googleusercontent.com")
-            }
-            else {
-                Toast.makeText(context, "Твоя версия Android пока не поддерживается.", Toast.LENGTH_LONG).show()
-            }
+            SignInBottomSheet(viewModel, "714660007842-dkrp22efm0qaek80jtr0lnokg5vtajv1.apps.googleusercontent.com")
         }
 
         if (isSyncAlertModalShown) {
@@ -199,16 +182,20 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsScreenViewMo
                 .background(MaterialTheme.colorScheme.background)
                 .padding(PaddingValues(
                     top = innerPadding.calculateTopPadding(),
-                    bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() + 80.dp))
+                    bottom = 80.dp)
+                )
                 .snowfall()
         ) {
-            item {
-                if (!uiState.isSignedIn) {
-                    SignInOffer { isSyncAlertModalShown = true }
-                } else {
-                    AccountInfo(uiState, viewModel)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                item {
+                    if (!uiState.isSignedIn) {
+                        SignInOffer { isSyncAlertModalShown = true }
+                    } else {
+                        AccountInfo(uiState, viewModel)
+                    }
                 }
             }
+
 
             item {
                 SettingsCategory("Уведомления") {
@@ -375,25 +362,25 @@ fun SettingsScreen(navController: NavController, viewModel: SettingsScreenViewMo
                         )
                     )
 
-                    ListItem(
-                        headlineContent = { Text("Проверить обновления") },
-                        leadingContent = { Icon(Icons.Default.Update, null) },
-                        modifier = Modifier.clickable(
-                            enabled = true,
-                            onClick = {
-                                scope.launch {
-                                    val whaaatIsItAnUpdate = checkUpdates(context)
-                                    val text = when (whaaatIsItAnUpdate) {
-                                        false -> "Обновлений не нашлось..."
-                                        true -> "Обновления нашлись! Перезайди в Planify, чтобы скачать"
-                                    }
-                                    Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
-                                }
-                            },
-                            interactionSource = null,
-                            indication = ripple(bounded = true)
-                        )
-                    )
+//                    ListItem(
+//                        headlineContent = { Text("Проверить обновления") },
+//                        leadingContent = { Icon(Icons.Default.Update, null) },
+//                        modifier = Modifier.clickable(
+//                            enabled = true,
+//                            onClick = {
+//                                scope.launch {
+//                                    val whaaatIsItAnUpdate = checkUpdates(context)
+//                                    val text = when (whaaatIsItAnUpdate) {
+//                                        false -> "Обновлений не нашлось..."
+//                                        true -> "Обновления нашлись! Перезайди в Planify, чтобы скачать"
+//                                    }
+//                                    Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
+//                                }
+//                            },
+//                            interactionSource = null,
+//                            indication = ripple(bounded = true)
+//                        )
+//                    )
                 }
             }
         }

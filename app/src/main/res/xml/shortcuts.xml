@@ -4,7 +4,7 @@
     <shortcut
         android:shortcutId="send_logs"
         android:enabled="true"
-        android:icon="@drawable/icon_with_top"
+        android:icon="@drawable/ic_launcher_monochrome"
         android:shortcutShortLabel="@string/logs_shortcut_short_label"
         android:shortcutLongLabel="@string/logs_shortcut_long_label"
         android:shortcutDisabledMessage="@string/logs_shortcut_disabled_message">

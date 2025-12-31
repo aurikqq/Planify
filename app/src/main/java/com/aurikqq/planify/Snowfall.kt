@@ -18,7 +18,9 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.PaintingStyle
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
-import kotlinx.coroutines.isActive
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import java.util.concurrent.ThreadLocalRandom
 import kotlin.math.PI
 import kotlin.math.cos
@@ -33,18 +35,26 @@ internal fun Modifier.snowfall() = composed {
     var snowflakesState by remember {
         mutableStateOf(SnowflakesState(-1, IntSize(0, 0)))
     }
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-    LaunchedEffect(Unit) {
-        while (isActive) {
-            withFrameNanos { newTick ->
-                val elapsedMillis =
-                    (newTick - snowflakesState.tickNanos).nanoseconds.inWholeMilliseconds
-                val wasFirstRun = snowflakesState.tickNanos < 0
-                snowflakesState.tickNanos = newTick
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (true) {
+                withFrameNanos { newTick ->
+                    if (snowflakesState.tickNanos < 0) {
+                        snowflakesState.tickNanos = newTick
+                        return@withFrameNanos
+                    }
 
-                if (wasFirstRun) return@withFrameNanos
-                for (snowflake in snowflakesState.snowflakes) {
-                    snowflake.update(elapsedMillis)
+                    val elapsedMillis =
+                        (newTick - snowflakesState.tickNanos)
+                            .nanoseconds.inWholeMilliseconds
+                            .coerceAtMost(32)
+                    snowflakesState.tickNanos = newTick
+
+                    snowflakesState.snowflakes.forEach {
+                        it.update(elapsedMillis)
+                    }
                 }
             }
         }
@@ -77,8 +87,6 @@ private const val angleSeed = 25.0f
 private val angleSeedRange = -angleSeed..angleSeed
 private const val angleRange = 0.1f
 private const val angleDivisor = 10000.0f
-private val alphaRange = 0.5f..0.65f
-
 internal data class SnowflakesState(
     var tickNanos: Long,
     val snowflakes: List<Snowflake>,
@@ -116,7 +124,6 @@ private val snowflakePaint = Paint().apply {
     isAntiAlias = true
     color = Color.White
     style = PaintingStyle.Fill
-    alpha = alphaRange.random()
 }
 
 internal class Snowflake(
@@ -129,6 +136,7 @@ internal class Snowflake(
 
     private var position by mutableStateOf(position)
     private var angle by mutableDoubleStateOf(angle)
+    private var alp = incrementFactor * 10
 
     fun update(elapsedMillis: Long) {
         val increment = incrementFactor * (elapsedMillis / baseFrameDurationMillis) * baseSpeedPxAt60Fps
@@ -143,6 +151,6 @@ internal class Snowflake(
     }
 
     fun draw(canvas: Canvas) {
-        canvas.drawCircle(position, size, snowflakePaint)
+        canvas.drawCircle(position, size, snowflakePaint.apply { alpha = alp })
     }
 }
