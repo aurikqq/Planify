@@ -1,10 +1,14 @@
 package com.aurikqq.planify
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
-import android.content.res.Configuration
+import android.graphics.Rect
+import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContentTransitionScope
@@ -12,7 +16,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -53,6 +59,9 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -64,9 +73,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -75,7 +82,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
@@ -89,17 +97,41 @@ import com.aurikqq.planify.screens.PlansScreenUiState
 import com.aurikqq.planify.screens.SettingsScreen
 import com.aurikqq.planify.screens.UpdateLabel
 import com.aurikqq.planify.ui.theme.PlanifyTheme
+import com.aurikqq.planify.viewmodels.Note
+import com.aurikqq.planify.viewmodels.NotesScreenViewModel
 import com.aurikqq.planify.viewmodels.PlansScreenViewModel
 import com.aurikqq.planify.viewmodels.PlansScreenViewModelFactory
 import com.aurikqq.planify.viewmodels.SettingsScreenViewModel
 import com.aurikqq.planify.viewmodels.SettingsScreenViewModelFactory
+import com.aurikqq.planify.widgets.textwidget.Widget
+import com.aurikqq.planify.widgets.textwidget.WidgetReceiver
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
+//    fun isSystemInDarkMode() : Boolean {
+//        return (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+//                Configuration.UI_MODE_NIGHT_YES
+//    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+//        setTheme(
+//            if (isSystemInDarkMode())
+//                R.style.Theme_App_Starting_Dark
+//            else
+//                R.style.Theme_App_Starting_Light
+//        )
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            lifecycleScope.launch(Dispatchers.Default) {
+                GlanceAppWidgetManager(this@MainActivity)
+                    .setWidgetPreviews(WidgetReceiver::class)
+            }
+        }
+
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
         setContent {
             AppActivity()
         }
@@ -112,11 +144,69 @@ fun isKeyboardOpen() : Boolean {
     return ime > 0
 }
 
+//@Composable
+//fun launchScreen(plansCardRect: Rect?, onExit: () -> Unit) {
+//    var isIconVisible by remember { mutableStateOf(true) }
+//    var isBoxExpanding by remember { mutableStateOf(false) }
+//
+//    val sizeX = plansCardRect?.width()
+//    val sizeY = plansCardRect?.height()
+//    val posY = plansCardRect?.centerY()
+//
+//    val transition = remember {
+//        MutableTransitionState(true).apply {
+//            targetState = isIconVisible
+//        }
+//    }
+//
+//    LaunchedEffect(transition.isIdle, transition.currentState) {
+//        isIconVisible = false
+//
+//        if (transition.isIdle && !transition.currentState) {
+//            delay(500L)
+//            isBoxExpanding = true
+//            delay(1000L)
+//            onExit()
+//        }
+//    }
+//
+//    Box(
+//        contentAlignment = Alignment.Center,
+//        modifier = Modifier
+//            .fillMaxSize()
+//            .background(MaterialTheme.colorScheme.background)
+//    ) {
+//        Box(modifier = Modifier
+//            .size(
+//                animateDpAsState(if (isBoxExpanding) sizeX!!.dp else 200.dp).value,
+//                animateDpAsState(if (isBoxExpanding) sizeY!!.dp else 200.dp).value
+//            )
+//            .clip(CircleShape)
+//            .background(CardDefaults.cardColors().containerColor)
+//            .align(Alignment.Center)
+//            .offset(
+//                0.dp,
+//                animateDpAsState(
+//                    if (isBoxExpanding) posY!!.dp else 0.dp,
+//                ).value
+//            )
+//        )
+//
+//        AnimatedVisibility(visibleState = transition, exit = fadeOut()) {
+//            Image(
+//                painterResource(R.drawable.ic_launcher_foreground),
+//                null,
+//                contentScale = ContentScale.Fit,
+//                modifier = Modifier.align(Alignment.Center).size(300.dp)
+//            )
+//        }
+//    }
+//}
+
 @Composable
 fun AppActivity() {
     val context = LocalContext.current
     val navController = rememberNavController()
-    val orientation = LocalConfiguration.current.navigation
 
     val viewModel: PlansScreenViewModel = viewModel(
         factory = PlansScreenViewModelFactory(
@@ -149,82 +239,169 @@ fun AppActivity() {
         scope.launch { drawerState.close() }
     }
 
+    var plansCardRect by remember { mutableStateOf<Rect?>(null) }
+    var launchAnimationPlaying by remember { mutableStateOf(true) }
+
     PlanifyTheme(darkTheme = settingsUiState.isDarkThemeOn) {
-        ModalNavigationDrawer(
-            drawerState = drawerState,
-            drawerContent = { drawerContent() },
-            modifier = Modifier
-                .fillMaxSize()
-        ) {
-            Box(Modifier.fillMaxSize()) {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Column(
-                        modifier = Modifier
-                            .padding(
-                                start = innerPadding.calculateStartPadding(LayoutDirection.Ltr),
-                                top = innerPadding.calculateTopPadding(),
-                                end = innerPadding.calculateEndPadding(LayoutDirection.Ltr),
-                                bottom = if (isKeyboardOpen()) 0.dp else innerPadding.calculateBottomPadding()
-                            )
-                    ) {
-                        NavHost(
-                            navController = navController,
-                            startDestination = MAIN_SCREEN,
-                            enterTransition = { slideInHorizontally { it } + fadeIn() },
-                            exitTransition = { slideOutHorizontally { -it } + fadeOut() },
-                            popEnterTransition = { slideInHorizontally { -it } + fadeIn() },
-                            popExitTransition = { slideOutHorizontally { it } + fadeOut() },
+        if (!isTablet(context)) {
+            ModalNavigationDrawer(
+                drawerState = drawerState,
+                drawerContent = { drawerContent() },
+                modifier = Modifier
+                    .fillMaxSize()
+            ) {
+                Box(Modifier.fillMaxSize()) {
+                    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                        Column(
                             modifier = Modifier
-                                .fillMaxSize()
+                                .padding(
+                                    start = innerPadding.calculateStartPadding(LayoutDirection.Ltr),
+                                    top = innerPadding.calculateTopPadding(),
+                                    end = innerPadding.calculateEndPadding(LayoutDirection.Ltr),
+                                    bottom = if (isKeyboardOpen()) 0.dp else innerPadding.calculateBottomPadding()
+                                )
                         ) {
-                            composable(
-                                route = MAIN_SCREEN,
-                                enterTransition = {
-                                    slideIntoContainer(
-                                        AnimatedContentTransitionScope.SlideDirection.Right,
-                                        tween(350)
-                                    )
-                                },
-                                exitTransition = {
-                                    slideOutOfContainer(
-                                        AnimatedContentTransitionScope.SlideDirection.Left,
-                                        tween(350)
-                                    )
-                                }
+                            NavHost(
+                                navController = navController,
+                                startDestination = MAIN_SCREEN,
+                                enterTransition = { slideInHorizontally { it } + fadeIn() },
+                                exitTransition = { slideOutHorizontally { -it } + fadeOut() },
+                                popEnterTransition = { slideInHorizontally { -it } + fadeIn() },
+                                popExitTransition = { slideOutHorizontally { it } + fadeOut() },
+                                modifier = Modifier
+                                    .fillMaxSize()
                             ) {
-                                MainScreen(
-                                    context,
-                                    viewModel,
-                                    uiState,
-                                    navController = navController,
-                                    drawerState = drawerState,
-                                    scope = scope,
-                                    modifier = Modifier
+                                composable(
+                                    route = MAIN_SCREEN,
+                                    enterTransition = {
+                                        slideIntoContainer(
+                                            AnimatedContentTransitionScope.SlideDirection.Right,
+                                            tween(350)
+                                        )
+                                    },
+                                    exitTransition = {
+                                        slideOutOfContainer(
+                                            AnimatedContentTransitionScope.SlideDirection.Left,
+                                            tween(350)
+                                        )
+                                    }
                                 ) {
-                                    drawerContent = it
-                                }
-                            }
-                            composable(
-                                route = SETTINGS_SCREEN,
-                                enterTransition = {
-                                    slideIntoContainer(
-                                        AnimatedContentTransitionScope.SlideDirection.Left,
-                                        tween(350)
-                                    )
-                                },
-                                exitTransition = {
-                                    slideOutOfContainer(
-                                        AnimatedContentTransitionScope.SlideDirection.Right,
-                                        tween(350)
+                                    MainScreen(
+                                        context,
+                                        viewModel,
+                                        uiState,
+                                        drawerState = drawerState,
+                                        scope = scope,
+                                        modifier = Modifier,
+                                        { drawerContent = it },
+                                        //{ plansCardRect = it }
                                     )
                                 }
-                            ) {
-                                SettingsScreen(settingsViewModel)
+                                composable(
+                                    route = SETTINGS_SCREEN,
+                                    enterTransition = {
+                                        slideIntoContainer(
+                                            AnimatedContentTransitionScope.SlideDirection.Left,
+                                            tween(350)
+                                        )
+                                    },
+                                    exitTransition = {
+                                        slideOutOfContainer(
+                                            AnimatedContentTransitionScope.SlideDirection.Right,
+                                            tween(350)
+                                        )
+                                    }
+                                ) {
+                                    SettingsScreen(settingsViewModel)
+                                }
                             }
                         }
+                        Column {
+                            Spacer(modifier = Modifier.size(64.dp))
+                        }
                     }
-                    Column {
-                        Spacer(modifier = Modifier.size(64.dp))
+
+                    Column(
+                        Modifier
+                            .background(Color.Transparent)
+                            .align(Alignment.BottomCenter)
+                    ) {
+                        UpdateLabel()
+                        if (!isTablet(context)) BottomBar(navController)
+                    }
+                }
+            }
+        }
+        else {
+            Box(Modifier.fillMaxSize()) {
+                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                    Row {
+                        NavRail(navController)
+
+                        Column(
+                            modifier = Modifier
+                                .padding(
+                                    start = innerPadding.calculateStartPadding(LayoutDirection.Ltr),
+                                    top = innerPadding.calculateTopPadding(),
+                                    end = innerPadding.calculateEndPadding(LayoutDirection.Ltr),
+                                    bottom = if (isKeyboardOpen()) 0.dp else innerPadding.calculateBottomPadding()
+                                )
+                        ) {
+                            NavHost(
+                                navController = navController,
+                                startDestination = MAIN_SCREEN,
+                                enterTransition = { slideInVertically { it } + fadeIn() },
+                                exitTransition = { slideOutVertically { -it } + fadeOut() },
+                                popEnterTransition = { slideInVertically { -it } + fadeIn() },
+                                popExitTransition = { slideOutVertically { it } + fadeOut() },
+                                modifier = Modifier
+                                    .fillMaxSize()
+                            ) {
+                                composable(
+                                    route = MAIN_SCREEN,
+                                    enterTransition = {
+                                        slideIntoContainer(
+                                            AnimatedContentTransitionScope.SlideDirection.Down,
+                                            tween(350)
+                                        )
+                                    },
+                                    exitTransition = {
+                                        slideOutOfContainer(
+                                            AnimatedContentTransitionScope.SlideDirection.Up,
+                                            tween(350)
+                                        )
+                                    }
+                                ) {
+                                    MainScreen(
+                                        context,
+                                        viewModel,
+                                        uiState,
+                                        drawerState = drawerState,
+                                        scope = scope,
+                                        modifier = Modifier,
+                                        { drawerContent = it },
+                                        //{ plansCardRect = it }
+                                    )
+                                }
+                                composable(
+                                    route = SETTINGS_SCREEN,
+                                    enterTransition = {
+                                        slideIntoContainer(
+                                            AnimatedContentTransitionScope.SlideDirection.Up,
+                                            tween(350)
+                                        )
+                                    },
+                                    exitTransition = {
+                                        slideOutOfContainer(
+                                            AnimatedContentTransitionScope.SlideDirection.Down,
+                                            tween(350)
+                                        )
+                                    }
+                                ) {
+                                    SettingsScreen(settingsViewModel)
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -234,10 +411,18 @@ fun AppActivity() {
                         .align(Alignment.BottomCenter)
                 ) {
                     UpdateLabel()
-                    if (orientation == Configuration.ORIENTATION_PORTRAIT) BottomBar(navController)
+                    if (!isTablet(context)) BottomBar(navController)
                 }
             }
         }
+
+//        if (launchAnimationPlaying) {
+//            println("launched")
+//            launchScreen(plansCardRect) { launchAnimationPlaying = false }
+//        }
+//        else {
+//            println("stopped")
+//        }
     }
 }
 
@@ -312,16 +497,20 @@ fun BottomBar(navController: NavController) {
 
 @Composable
 fun NavRail(navController: NavController) {
-    val currentScreen = navController.currentBackStackEntry?.destination?.route
+    val navBackStackEntry = navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry.value?.destination?.route
 
     NavigationRail(
         windowInsets = BottomAppBarDefaults.windowInsets,
+        modifier = Modifier.fillMaxHeight()
     ) {
         Column(verticalArrangement = Arrangement.Center, modifier = Modifier.fillMaxHeight()) {
             NavigationRailItem(
-                selected = true,
+                selected = currentRoute == MAIN_SCREEN,
                 onClick = {
-                    navController.navigate(PLANS_SCREEN)
+                    if (currentRoute != MAIN_SCREEN) {
+                        navController.navigate(MAIN_SCREEN)
+                    }
                 },
                 icon = {
                     Icon(
@@ -331,14 +520,12 @@ fun NavRail(navController: NavController) {
                 },
                 label = { Text("Планы") }
             )
-            Spacer(modifier = Modifier.size(32.dp))
+            Spacer(modifier = Modifier.size(64.dp))
 
             NavigationRailItem(
-                selected = currentScreen == "",
                 enabled = false,
-                onClick = {
-                    //navController.navigate(PLANS_SCREEN)
-                },
+                selected = false,
+                onClick = {},
                 icon = {
                     Icon(
                         Icons.Default.Work,
@@ -347,13 +534,14 @@ fun NavRail(navController: NavController) {
                 },
                 label = { Text("Занятия") }
             )
-            Spacer(modifier = Modifier.size(32.dp))
+            Spacer(modifier = Modifier.size(64.dp))
 
             NavigationRailItem(
-                selected = currentScreen == "",
-                enabled = false,
+                selected = currentRoute == SETTINGS_SCREEN,
                 onClick = {
-                    //navController.navigate(PLANS_SCREEN)
+                    if (currentRoute != SETTINGS_SCREEN) {
+                        navController.navigate(SETTINGS_SCREEN)
+                    }
                 },
                 icon = {
                     Icon(
@@ -373,7 +561,8 @@ fun TabsBar(
     context: Context,
     viewModel: PlansScreenViewModel,
     uiState: PlansScreenUiState,
-    onTabSelected: (String) -> Unit
+    onTabSelected: (String) -> Unit,
+    //onPlansRendered: (Rect) -> Unit
 ) {
     var currentRoute: String? by remember { mutableStateOf(null) }
 
@@ -447,7 +636,7 @@ fun TabsBar(
             HorizontalPager(state = pagerState) { page ->
                 when (mainScreenTabs[page]) {
                     PLANS_SCREEN -> {
-                        DailyPlansScreen(context, uiState, viewModel)
+                        DailyPlansScreen(context, uiState, viewModel /*onPlansRendered*/)
                     }
                     NOTES_SCREEN -> NotesScreen()
                 }
@@ -461,6 +650,116 @@ suspend fun checkUpdates(context: Context) : Boolean {
     val result = isNewVersionAvailable(current!!, latest!!)
 
     return result
+}
+
+enum class TextWidgetDataTypes {
+    PLANS,
+    NOTE
+}
+
+suspend fun setTextWidgetData(type: TextWidgetDataTypes, data: String, context: Context) {
+    val manager = GlanceAppWidgetManager(context)
+    val widget = Widget()
+    val glanceIds = manager.getGlanceIds(widget.javaClass)
+
+    val repo = Repository(context.getSharedPreferences(
+        PREFERENCES_NAME, Context.MODE_PRIVATE), context)
+
+    if (type == TextWidgetDataTypes.PLANS) {
+        repo.setTextWidgetData("plans|$data")
+
+        val days = repo.getDaysList()
+        var day = Pair("", "")
+        days.forEach { it ->
+            if (it.second == data) {
+                day = it
+            }
+        }
+        repo.setTextWidgetTitle(day.second)
+        repo.setTextWidgetText(day.first)
+    }
+    else {
+        repo.setTextWidgetData("note|$data")
+        Log.d("Widget", "Data for setting: note|$data")
+
+        val notes = repo.getNotesList()
+        var note = Note()
+        notes.forEach { it ->
+            Log.d("Widget", "Looking for right note, current id: ${it.id}, target: $data")
+            if (it.id == data) {
+                note = it
+                Log.d("Widget", "Found note with id ${it.id} = target $data")
+            }
+        }
+        repo.setTextWidgetTitle(note.title)
+        repo.setTextWidgetText(note.text)
+        Log.d("Widget", "Saved to repo: title ${note.title}, text ${note.text}")
+    }
+
+    glanceIds.forEach { id ->
+        widget.update(context, id)
+        Log.d("Widget", "Updated widget with id $id")
+    }
+}
+
+suspend fun updateTextWidget(type: TextWidgetDataTypes, data: String, context: Context) {
+    val repo = Repository(context.getSharedPreferences(
+        PREFERENCES_NAME, Context.MODE_PRIVATE), context)
+    val widgetData = repo.getTextWidgetData()
+
+    when (type) {
+        TextWidgetDataTypes.PLANS -> {
+            if (widgetData == "plans|$data") {
+                val days = repo.getDaysList()
+                var day = Pair("", "")
+
+                val manager = GlanceAppWidgetManager(context)
+                val widget = Widget()
+                val glanceIds = manager.getGlanceIds(widget.javaClass)
+
+                days.forEach { it ->
+                    if (it.second == data) {
+                        day = it
+                    }
+                }
+                repo.setTempNoteTitle(day.second)
+                repo.setTempNoteText(day.first)
+
+                glanceIds.forEach { id ->
+                    widget.update(context, id)
+                }
+            }
+        }
+        TextWidgetDataTypes.NOTE -> {
+            if (widgetData == "note|$data") {
+                val notes = repo.getNotesList()
+                var note = Note()
+
+                val manager = GlanceAppWidgetManager(context)
+                val widget = Widget()
+                val glanceIds = manager.getGlanceIds(widget.javaClass)
+
+                notes.forEach { it ->
+                    if (it.id == data) {
+                        note = it
+                    }
+                }
+                repo.setTempNoteTitle(note.title)
+                repo.setTempNoteText(note.text)
+
+                glanceIds.forEach { id ->
+                    widget.update(context, id)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
+@Composable
+fun isTablet(context: Context = LocalContext.current) : Boolean {
+    val windowSizeClass = calculateWindowSizeClass(context as Activity)
+    return windowSizeClass.widthSizeClass >= WindowWidthSizeClass.Medium
 }
 
 @Preview(showSystemUi = false, showBackground = false)

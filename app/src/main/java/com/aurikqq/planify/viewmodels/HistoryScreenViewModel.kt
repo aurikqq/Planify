@@ -62,7 +62,7 @@ class HistoryScreenViewModel(private val repo: Repository) : ViewModel() {
             )
         }
 
-        if (_uiState.value.isSignedIn) {
+        if (_uiState.value.isSignedIn && isOnline()) {
             getPlansFromDatabase()
         }
     }
@@ -93,5 +93,9 @@ class HistoryScreenViewModel(private val repo: Repository) : ViewModel() {
             .addOnFailureListener { e ->
                 Log.w("Plans Sync", "Error adding plans", e)
             }
+    }
+
+    fun isOnline() : Boolean {
+        return repo.isOnline()
     }
 }

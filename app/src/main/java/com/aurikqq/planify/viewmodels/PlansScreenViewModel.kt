@@ -50,8 +50,6 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
             val havePlans = repo.havePlansForDate(currentDate)
             val isEditing = _uiState.value.isPlanEditing
 
-            val user = repo.user
-
             _uiState.update {
                 it.copy (
                     currentDate = currentDate,
@@ -294,5 +292,9 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
             .addOnFailureListener { e ->
                 Log.w("Plans Sync", "Error adding plans", e)
             }
+    }
+
+    fun isOnline() : Boolean {
+        return repo.isOnline()
     }
 }

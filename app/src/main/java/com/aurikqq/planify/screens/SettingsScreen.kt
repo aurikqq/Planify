@@ -97,6 +97,7 @@ import coil.compose.AsyncImage
 import com.aurikqq.planify.AlarmScheduler
 import com.aurikqq.planify.CHANGELOG
 import com.aurikqq.planify.R
+import com.aurikqq.planify.isTablet
 import com.aurikqq.planify.snowfall
 import com.aurikqq.planify.ui.theme.PlanifyTheme
 import com.aurikqq.planify.viewmodels.SettingsScreenViewModel
@@ -121,7 +122,6 @@ data class SettingsScreenUiState (
 fun SettingsScreen(viewModel: SettingsScreenViewModel) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
-    //val scope = rememberCoroutineScope()
 
     var isChangelogShown by remember { mutableStateOf(false) }
     var isThemeModalSheetShown by remember { mutableStateOf(false) }
@@ -182,7 +182,9 @@ fun SettingsScreen(viewModel: SettingsScreenViewModel) {
                 .background(MaterialTheme.colorScheme.background)
                 .padding(PaddingValues(
                     top = innerPadding.calculateTopPadding(),
-                    bottom = 80.dp)
+                    start = if (isTablet(context)) 64.dp else 0.dp,
+                    end = if (isTablet(context)) 64.dp else 0.dp,
+                    bottom = if (isTablet(context)) 0.dp else 80.dp)
                 )
                 .snowfall()
         ) {
@@ -692,7 +694,8 @@ fun SyncAlertModal(onClick: () -> Unit, onDismiss: () -> Unit) {
 fun SettingsTopBar() {
     TopAppBar(
         title = { Text("Настройки") },
-        windowInsets = WindowInsets(0,0, 0, 0)
+        windowInsets = WindowInsets(0,0, 0, 0),
+        modifier = Modifier.padding(start = if (isTablet()) 64.dp else 0.dp)
     )
 }
 

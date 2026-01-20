@@ -79,7 +79,7 @@ fun HistoryScreen() {
 
     val uiState by viewModel.uiState.collectAsState()
 
-    if (uiState.isSignedIn) {
+    if (uiState.isSignedIn && viewModel.isOnline()) {
         LaunchedEffect(Unit) {
             viewModel.getPlansFromDatabase()
         }

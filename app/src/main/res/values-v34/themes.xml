@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.App.Starting.Light" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/screen_background_color</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="windowSplashScreenIconBackgroundColor">
+            @android:color/system_accent1_100
+        </item>
+        <item name="postSplashScreenTheme">@style/Theme.Planify</item>
+    </style>
+
+    <style name="Theme.App.Starting.Dark" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/screen_background_color</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="windowSplashScreenIconBackgroundColor">
+            @android:color/system_accent1_100
+        </item>
+        <item name="postSplashScreenTheme">@style/Theme.Planify</item>
+    </style>
+</resources>

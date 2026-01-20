@@ -1,7 +1,6 @@
 package com.aurikqq.planify.screens
 
 import android.content.Context
-import android.content.res.Configuration
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -37,12 +36,8 @@ import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.Close
@@ -66,19 +61,16 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -87,11 +79,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
 import com.aurikqq.planify.AlarmScheduler
-import com.aurikqq.planify.NavRail
 import com.aurikqq.planify.R
 import com.aurikqq.planify.createNotificationChannel
+import com.aurikqq.planify.isTablet
 import com.aurikqq.planify.snowfall
 import com.aurikqq.planify.viewmodels.PlansScreenViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -197,11 +188,9 @@ fun DaysListItem(
 @Composable
 fun DaysList(
     viewModel: PlansScreenViewModel = viewModel(),
-    navController: NavController,
     onDateSelected: (String) -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val orientation = LocalConfiguration.current.navigation
 
     for (day in uiState.days) {
         if (day.second == uiState.currentDate) {
@@ -213,10 +202,6 @@ fun DaysList(
         .width(256.dp)
     ) {
         Row {
-            if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                NavRail(navController)
-            }
-
             Column {
                 DaysListItem(uiState, "сегодня", uiState.currentDate == uiState.selectedPickerDate,
                     onClick = { onDateSelected(uiState.currentDate) })
@@ -274,7 +259,8 @@ fun DaysList(
 fun DailyPlansScreen(
     context: Context,
     uiState: PlansScreenUiState,
-    viewModel: PlansScreenViewModel = viewModel()
+    viewModel: PlansScreenViewModel = viewModel(),
+    //onPlansRendered: (Rect) -> Unit
 ) {
     val top by animateDpAsState(if (uiState.havePlans) 24.dp else 48.dp, tween())
     val bottomLabels = listOf(
@@ -290,7 +276,7 @@ fun DailyPlansScreen(
 
     val labelText = remember { bottomLabels.random() }
 
-    if (uiState.isSignedIn) {
+    if (uiState.isSignedIn && !isTablet(context) && viewModel.isOnline()) {
         LaunchedEffect(Unit) {
             viewModel.getPlansFromDatabase()
         }
@@ -322,6 +308,18 @@ fun DailyPlansScreen(
                             shape = RoundedCornerShape(12.dp),
                             clip = false
                         )
+//                        .onGloballyPositioned { coords ->
+//                            val position = coords.positionInRoot()
+//                            val size = coords.size
+//
+//                            val rect = Rect(
+//                                position.x.toInt(),
+//                                position.y.toInt(),
+//                                (position.x + size.width).toInt(),
+//                                (position.y + size.height).toInt()
+//                            )
+//                            onPlansRendered(rect)
+//                        }
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(
@@ -386,7 +384,7 @@ fun DailyPlansScreen(
                 Button(
                     onClick = {
                         viewModel.updateAccount()
-                        if (uiState.isSignedIn) {
+                        if (uiState.isSignedIn && viewModel.isOnline()) {
                             viewModel.sendPlansToDatabase(uiState.tempPlanInput)
                             Log.d("DB", "Send (${uiState.tempPlanInput})")
                         }
@@ -395,6 +393,8 @@ fun DailyPlansScreen(
 
                         createNotificationChannel(context)
                         AlarmScheduler.schedulePlansReset(context)
+
+
                     },
                     enabled = uiState.tempPlanInput.isNotBlank(),
                 ) {
@@ -405,7 +405,7 @@ fun DailyPlansScreen(
                     ElevatedButton(
                         onClick = {
                             viewModel.addPlans()
-                            if (uiState.isSignedIn)
+                            if (uiState.isSignedIn && viewModel.isOnline())
                                 viewModel.sendPlansToDatabase("${uiState.plansForSelectedDate}\n${uiState.tempPlanInput}")
                             viewModel.tempPlans("")
                         },
@@ -418,7 +418,7 @@ fun DailyPlansScreen(
                         ElevatedButton(
                             onClick = {
                                 viewModel.endEditingPlans()
-                                if (uiState.isSignedIn)
+                                if (uiState.isSignedIn && viewModel.isOnline())
                                     viewModel.sendPlansToDatabase(uiState.tempPlanInput)
                                 viewModel.tempPlans("")
                             },
@@ -484,14 +484,33 @@ fun TopBar(
             .fillMaxWidth()
             .padding(start = 8.dp)
     ) {
-        TextButton(onClick = { scope.launch { drawerState.open() } }
-        ) {
-            Icon(Icons.Default.Menu, null)
-            Spacer(modifier = Modifier.size(16.dp))
+        if (!isTablet()) {
+            TextButton(onClick = { scope.launch { drawerState.open() } }
+            ) {
+                Icon(Icons.Default.Menu, null)
+                Spacer(modifier = Modifier.size(16.dp))
+                Text(
+                    text = day,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .drawBehind {
+                            drawRoundRect(
+                                color,
+                                topLeft = Offset(0f, size.height + 4.dp.toPx()),
+                                size = Size(size.width, 3.dp.toPx()),
+                                cornerRadius = CornerRadius(50f, 50f)
+                            )
+                        }
+                )
+            }
+        }
+        else {
             Text(
                 text = day,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold,
+                color = color,
                 modifier = Modifier
                     .drawBehind {
                         drawRoundRect(
@@ -503,6 +522,7 @@ fun TopBar(
                     }
             )
         }
+
         IconButton(
             onClick = {
                 onHistoryClick()

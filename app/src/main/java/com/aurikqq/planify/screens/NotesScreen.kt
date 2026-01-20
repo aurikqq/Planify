@@ -35,6 +35,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.filled.ArrowDownward
+import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Button
@@ -75,11 +77,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.aurikqq.planify.PREFERENCES_NAME
 import com.aurikqq.planify.R
 import com.aurikqq.planify.Repository
+import com.aurikqq.planify.TextWidgetDataTypes
 import com.aurikqq.planify.snowfall
 import com.aurikqq.planify.ui.theme.PlanifyTheme
+import com.aurikqq.planify.updateTextWidget
 import com.aurikqq.planify.viewmodels.Note
 import com.aurikqq.planify.viewmodels.NotesScreenViewModel
 import com.aurikqq.planify.viewmodels.NotesScreenViewModelFactory
+import kotlinx.coroutines.coroutineScope
 
 data class NotesScreenUiState(
     val notes: MutableList<Note> = mutableListOf(),
@@ -110,7 +115,7 @@ fun NotesScreen(modifier: Modifier = Modifier) {
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    if (uiState.isSignedIn) {
+    if (uiState.isSignedIn && viewModel.isOnline()) {
         LaunchedEffect(Unit) {
             viewModel.getNotesFromDatabase()
         }
@@ -321,29 +326,49 @@ fun NoteCard(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     if (!isEditing) {
-                        if (isExpanded) {
-                            if (isSystemInDarkTheme()) {
-                                FilledTonalButton(
-                                    onClick = {
-                                        isEditing = true
-                                        viewModel.isEditing(true)
-                                    },
-                                    enabled = !uiState.isEditing && !uiState.isAddingNote
-                                ) {
-                                    Text("Поменять")
+                        Row {
+                            if (isExpanded) {
+                                if (isSystemInDarkTheme()) {
+                                    FilledTonalButton(
+                                        onClick = {
+                                            isEditing = true
+                                            viewModel.isEditing(true)
+                                        },
+                                        enabled = !uiState.isEditing && !uiState.isAddingNote
+                                    ) {
+                                        Text("Поменять")
+                                    }
+                                }
+                                else {
+                                    ElevatedButton(
+                                        onClick = {
+                                            isEditing = true
+                                            viewModel.isEditing(true)
+                                        },
+                                        enabled = !uiState.isEditing && !uiState.isAddingNote
+                                    ) {
+                                        Text("Поменять")
+                                    }
                                 }
                             }
-                            else {
-                                ElevatedButton(
-                                    onClick = {
-                                        isEditing = true
-                                        viewModel.isEditing(true)
-                                    },
-                                    enabled = !uiState.isEditing && !uiState.isAddingNote
-                                ) {
-                                    Text("Поменять")
-                                }
-                            }
+
+//                            IconButton(
+//                                onClick = {
+//
+//                                },
+//                                shape = RoundedCornerShape(12.dp)
+//                            ) {
+//                                Icon(Icons.Default.ArrowUpward, null)
+//                            }
+//
+//                            IconButton(
+//                                onClick = {
+//
+//                                },
+//                                shape = RoundedCornerShape(12.dp)
+//                            ) {
+//                                Icon(Icons.Default.ArrowDownward, null)
+//                            }
                         }
 
                         IconButton(
@@ -362,6 +387,8 @@ fun NoteCard(
                                     isEditing = false
                                     viewModel.setNote(note)
                                     viewModel.isEditing(false)
+
+                                    viewModel.updateWidget(note)
                                 }
                             ) {
                                 Text(stringResource(R.string.button_finish_editing))
@@ -373,6 +400,8 @@ fun NoteCard(
                                     isEditing = false
                                     viewModel.setNote(note)
                                     viewModel.isEditing(false)
+
+                                    viewModel.updateWidget(note)
                                 }
                             ) {
                                 Text(stringResource(R.string.button_finish_editing))

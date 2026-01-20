@@ -3,20 +3,15 @@ package com.aurikqq.planify.screens
 import android.app.AlarmManager
 import android.content.Context
 import android.content.Intent
-import android.content.res.Configuration
 import android.os.Build
 import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
@@ -72,10 +67,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.text.buildAnnotatedString
@@ -84,8 +77,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
-import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import com.aurikqq.planify.CHANGELOG
 import com.aurikqq.planify.HISTORY_SCREEN
@@ -99,6 +90,7 @@ import com.aurikqq.planify.TabsBar
 import com.aurikqq.planify.checkUpdates
 import com.aurikqq.planify.downloadApk
 import com.aurikqq.planify.installApk
+import com.aurikqq.planify.isTablet
 import com.aurikqq.planify.viewmodels.PlansScreenViewModel
 import com.aurikqq.planify.viewmodels.PlansScreenViewModelFactory
 import kotlinx.coroutines.CoroutineScope
@@ -110,7 +102,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -119,13 +110,12 @@ fun MainScreen(
     context: Context,
     viewModel: PlansScreenViewModel,
     uiState: PlansScreenUiState,
-    navController: NavHostController,
     drawerState: DrawerState,
     scope: CoroutineScope,
     modifier: Modifier = Modifier,
-    setDrawerContent: (@Composable () -> Unit) -> Unit
+    setDrawerContent: (@Composable () -> Unit) -> Unit,
+    //onPlansRendered: (Rect) -> Unit
 ) {
-    val orientation = LocalConfiguration.current.navigation
     var showUpdateDialog by remember { mutableStateOf(false) }
 
     val chosenDates = mutableListOf<String>()
@@ -173,7 +163,7 @@ fun MainScreen(
 
     LaunchedEffect(uiState.days) {
         setDrawerContent {
-            DrawerContent(uiState, viewModel, navController, drawerState, scope)
+            DrawerContent(uiState, viewModel, drawerState, scope)
         }
     }
 
@@ -241,7 +231,7 @@ fun MainScreen(
         }
     }
 
-    if (orientation == Configuration.ORIENTATION_PORTRAIT) {
+    if (!isTablet(context)) {
             Column {
                 TopBar(uiState, drawerState, scope, isHistoryShown) {
                     selectedTab = if (!isHistoryShown) preHistoryScreen
@@ -260,9 +250,15 @@ fun MainScreen(
                     ) { screen ->
                         when (screen) {
                             in listOf(PLANS_SCREEN, NOTES_SCREEN) -> {
-                                TabsBar(context, viewModel, uiState) { route ->
-                                    selectedTab = route
-                                }
+                                TabsBar(
+                                    context,
+                                    viewModel,
+                                    uiState,
+                                    { route ->
+                                        selectedTab = route
+                                    },
+                                    //onPlansRendered
+                                )
                             }
                             HISTORY_SCREEN -> HistoryScreen()
                         }
@@ -273,17 +269,38 @@ fun MainScreen(
     else {
         Row(modifier = modifier.fillMaxSize()) {
             Column {
-                DaysList(
-                    viewModel,
-                    navController,
-                    {
-                        viewModel.selectDate(it)
-                        scope.launch {
-                            drawerState.close()
-                            viewModel.setIsDaysListEditing(false)
-                        }
+                Row (
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.Start,
+                    modifier = Modifier
+                        .padding(start = 16.dp, top = 8.dp, bottom = 16.dp)
+                        .size(256.dp, 32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AcUnit,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.size(8.dp))
+                    PlanifyTitle()
+                }
+                LazyColumn(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    item {
+                        DaysList(
+                            viewModel,
+                            {
+                                viewModel.selectDate(it)
+                                scope.launch {
+                                    drawerState.close()
+                                    viewModel.setIsDaysListEditing(false)
+                                }
+                            }
+                        )
                     }
-                )
+                }
                 Spacer(Modifier.size(12.dp))
                 TextButton(onClick = { viewModel.showDatePicker() }) {
                     Icon(
@@ -293,7 +310,11 @@ fun MainScreen(
                     Spacer(Modifier.size(8.dp))
                     Text("Добавить день")
                 }
-                TextButton(onClick = { /*viewModel.editDaysList()*/ }) {
+
+                TextButton(
+                    onClick = { viewModel.setIsDaysListEditing(!uiState.isDaysListEditing) },
+                    enabled = uiState.days.isNotEmpty()
+                ) {
                     Icon(
                         Icons.Default.EditCalendar,
                         null,
@@ -304,19 +325,35 @@ fun MainScreen(
             }
 
             Column {
-                TabsBar(context, viewModel, uiState) { route ->
-                    selectedTab = route
+                TopBar(uiState, drawerState, scope, isHistoryShown) {
+                    selectedTab = if (!isHistoryShown) preHistoryScreen
+                        .also { preHistoryScreen = selectedTab }
+                        .let { HISTORY_SCREEN }
+                    else preHistoryScreen
                 }
 
                 Surface {
-                    when (selectedTab) {
-                        PLANS_SCREEN -> DailyPlansScreen(
-                            context,
-                            uiState,
-                            viewModel
-                        )
-                        NOTES_SCREEN -> NotesScreen()
-                        HISTORY_SCREEN -> HistoryScreen()
+                    AnimatedContent (
+                        targetState = selectedTab,
+                        transitionSpec = {
+                            slideInHorizontally() + fadeIn() togetherWith
+                                    slideOutHorizontally() + fadeOut()
+                        }
+                    ) { screen ->
+                        when (screen) {
+                            in listOf(PLANS_SCREEN, NOTES_SCREEN) -> {
+                                TabsBar(
+                                    context,
+                                    viewModel,
+                                    uiState,
+                                    { route ->
+                                        selectedTab = route
+                                    },
+                                    //onPlansRendered
+                                )
+                            }
+                            HISTORY_SCREEN -> HistoryScreen()
+                        }
                     }
                 }
             }
@@ -328,7 +365,6 @@ fun MainScreen(
 fun DrawerContent(
     uiState: PlansScreenUiState,
     viewModel: PlansScreenViewModel,
-    navController: NavController,
     drawerState: DrawerState,
     scope: CoroutineScope
 ) {
@@ -360,7 +396,6 @@ fun DrawerContent(
             item {
                 DaysList(
                     viewModel,
-                    navController,
                     {
                         scope.launch {
                             if (!uiState.isDaysListEditing) {

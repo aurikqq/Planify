@@ -2,9 +2,12 @@ package com.aurikqq.planify
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.util.Log
 import android.widget.Toast
 import androidx.annotation.StringRes
+import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.edit
 import com.aurikqq.planify.viewmodels.Note
 import com.google.firebase.Firebase
@@ -104,7 +107,7 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
             remove("${KEY_HAVE_PLANS}_$date")
         }
 
-        if (email.isNotBlank()) {
+        if (email.isNotBlank() && isOnline()) {
             db.collection(email)
                 .document("plans")
                 .collection("plans_collection")
@@ -133,7 +136,7 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
         }
         plansList.removeIf { it.second == date }
 
-        if (isSignedIn) {
+        if (isSignedIn && isOnline()) {
             println("deleting")
             db.collection(email)
                 .document("plans")
@@ -177,7 +180,7 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
             putString(KEY_DAILY_PLANS_LIST, datesJson)
         }
 
-        if (isSignedIn) {
+        if (isSignedIn && isOnline()) {
             val plans = hashMapOf(
                 "plans" to ""
             )
@@ -390,5 +393,42 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
 
     fun getEmail() : String {
         return sharedPreferences.getString(USER_EMAIL, "") ?: ""
+    }
+
+    fun isOnline(): Boolean {
+        val connectManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectManager.activeNetwork ?: return false
+        val caps = connectManager.getNetworkCapabilities(network) ?: return false
+
+        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+    }
+
+    fun getTextWidgetText() : String {
+        return sharedPreferences.getString(TEXT_WIDGET_TEXT, "") ?: ""
+    }
+    fun getTextWidgetTitle() : String {
+        return sharedPreferences.getString(TEXT_WIDGET_TITLE, "") ?: ""
+    }
+    fun getTextWidgetData() : String {
+        return sharedPreferences.getString(TEXT_WIDGET_DATA, "") ?: ""
+    }
+    fun setTextWidgetTitle(data: String) {
+        sharedPreferences.edit {
+            putString(TEXT_WIDGET_TITLE, data)
+        }
+    }
+    fun setTextWidgetText(data: String) {
+        sharedPreferences.edit {
+            putString(TEXT_WIDGET_TEXT, data)
+        }
+    }
+    fun setTextWidgetData(data: String) {
+        sharedPreferences.edit {
+            putString(TEXT_WIDGET_DATA, data)
+        }
+    }
+    suspend fun updateTextWidgetData(type: TextWidgetDataTypes, data: String) {
+        updateTextWidget(type, data, context)
     }
 }

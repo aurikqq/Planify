@@ -52,6 +52,7 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+        viewBinding = true
     }
 }
 
@@ -86,6 +87,16 @@ dependencies {
     implementation(libs.play.services.auth)
     implementation(libs.googleid)
     implementation(libs.androidx.navigation.compose)
+    implementation("androidx.glance:glance:1.2.0-rc01")
+    implementation("androidx.glance:glance-appwidget:1.2.0-rc01")
+    implementation("androidx.glance:glance-material3:1.2.0-rc01")
+    implementation(libs.material)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.constraintlayout)
+    implementation(libs.androidx.navigation.fragment.ktx)
+    implementation(libs.androidx.navigation.ui.ktx)
+    implementation(libs.androidx.compose.material3.window.size.class1)
+
 
     testImplementation(libs.junit)
 
