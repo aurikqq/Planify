@@ -2,13 +2,12 @@ package com.aurikqq.planify
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContentTransitionScope
@@ -74,7 +73,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -83,6 +81,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -97,8 +96,6 @@ import com.aurikqq.planify.screens.PlansScreenUiState
 import com.aurikqq.planify.screens.SettingsScreen
 import com.aurikqq.planify.screens.UpdateLabel
 import com.aurikqq.planify.ui.theme.PlanifyTheme
-import com.aurikqq.planify.viewmodels.Note
-import com.aurikqq.planify.viewmodels.NotesScreenViewModel
 import com.aurikqq.planify.viewmodels.PlansScreenViewModel
 import com.aurikqq.planify.viewmodels.PlansScreenViewModelFactory
 import com.aurikqq.planify.viewmodels.SettingsScreenViewModel
@@ -135,6 +132,30 @@ class MainActivity : ComponentActivity() {
         setContent {
             AppActivity()
         }
+    }
+
+    //val intent = (applicationContext as Activity).intent
+
+    val widgetId = intent?.extras?.getInt(
+        AppWidgetManager.EXTRA_APPWIDGET_ID,
+        AppWidgetManager.INVALID_APPWIDGET_ID
+    ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
+
+    //////fuck it
+
+    private fun saveTextWidgetState(id: String) = lifecycleScope.launch(Dispatchers.IO) {
+        val repo = Repository(
+            applicationContext.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE),
+            applicationContext
+        )
+        val glanceId = GlanceAppWidgetManager(applicationContext).getGlanceIdBy(widgetId)
+        val note = repo.getNotesList().find { it.id == id } ?: return@launch
+        updateAppWidgetState(applicationContext, glanceId) { prefs ->
+            prefs[Widget().noteId] = id
+            prefs[Widget().noteTitle] = note.title
+            prefs[Widget().noteText] = note.text
+        }
+        Widget().update(applicationContext, glanceId)
     }
 }
 
@@ -430,13 +451,13 @@ fun AppActivity() {
 @Composable
 fun BottomBar(navController: NavController) {
     Box {
-        Image(painterResource(
-            R.drawable.christmas_tree),
-            null,
-            modifier = Modifier
-                .size(48.dp)
-                .offset(44.dp, (-43).dp)
-        )
+//        Image(painterResource(
+//            R.drawable.christmas_tree),
+//            null,
+//            modifier = Modifier
+//                .size(48.dp)
+//                .offset(44.dp, (-43).dp)
+//        )
 
         BottomAppBar(
             windowInsets = BottomAppBarDefaults.windowInsets,
@@ -655,104 +676,6 @@ suspend fun checkUpdates(context: Context) : Boolean {
 enum class TextWidgetDataTypes {
     PLANS,
     NOTE
-}
-
-suspend fun setTextWidgetData(type: TextWidgetDataTypes, data: String, context: Context) {
-    val manager = GlanceAppWidgetManager(context)
-    val widget = Widget()
-    val glanceIds = manager.getGlanceIds(widget.javaClass)
-
-    val repo = Repository(context.getSharedPreferences(
-        PREFERENCES_NAME, Context.MODE_PRIVATE), context)
-
-    if (type == TextWidgetDataTypes.PLANS) {
-        repo.setTextWidgetData("plans|$data")
-
-        val days = repo.getDaysList()
-        var day = Pair("", "")
-        days.forEach { it ->
-            if (it.second == data) {
-                day = it
-            }
-        }
-        repo.setTextWidgetTitle(day.second)
-        repo.setTextWidgetText(day.first)
-    }
-    else {
-        repo.setTextWidgetData("note|$data")
-        Log.d("Widget", "Data for setting: note|$data")
-
-        val notes = repo.getNotesList()
-        var note = Note()
-        notes.forEach { it ->
-            Log.d("Widget", "Looking for right note, current id: ${it.id}, target: $data")
-            if (it.id == data) {
-                note = it
-                Log.d("Widget", "Found note with id ${it.id} = target $data")
-            }
-        }
-        repo.setTextWidgetTitle(note.title)
-        repo.setTextWidgetText(note.text)
-        Log.d("Widget", "Saved to repo: title ${note.title}, text ${note.text}")
-    }
-
-    glanceIds.forEach { id ->
-        widget.update(context, id)
-        Log.d("Widget", "Updated widget with id $id")
-    }
-}
-
-suspend fun updateTextWidget(type: TextWidgetDataTypes, data: String, context: Context) {
-    val repo = Repository(context.getSharedPreferences(
-        PREFERENCES_NAME, Context.MODE_PRIVATE), context)
-    val widgetData = repo.getTextWidgetData()
-
-    when (type) {
-        TextWidgetDataTypes.PLANS -> {
-            if (widgetData == "plans|$data") {
-                val days = repo.getDaysList()
-                var day = Pair("", "")
-
-                val manager = GlanceAppWidgetManager(context)
-                val widget = Widget()
-                val glanceIds = manager.getGlanceIds(widget.javaClass)
-
-                days.forEach { it ->
-                    if (it.second == data) {
-                        day = it
-                    }
-                }
-                repo.setTempNoteTitle(day.second)
-                repo.setTempNoteText(day.first)
-
-                glanceIds.forEach { id ->
-                    widget.update(context, id)
-                }
-            }
-        }
-        TextWidgetDataTypes.NOTE -> {
-            if (widgetData == "note|$data") {
-                val notes = repo.getNotesList()
-                var note = Note()
-
-                val manager = GlanceAppWidgetManager(context)
-                val widget = Widget()
-                val glanceIds = manager.getGlanceIds(widget.javaClass)
-
-                notes.forEach { it ->
-                    if (it.id == data) {
-                        note = it
-                    }
-                }
-                repo.setTempNoteTitle(note.title)
-                repo.setTempNoteText(note.text)
-
-                glanceIds.forEach { id ->
-                    widget.update(context, id)
-                }
-            }
-        }
-    }
 }
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)

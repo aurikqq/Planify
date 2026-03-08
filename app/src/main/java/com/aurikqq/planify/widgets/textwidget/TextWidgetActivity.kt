@@ -35,17 +35,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.glance.action.actionParametersOf
-import androidx.glance.appwidget.action.actionRunCallback
 import androidx.lifecycle.lifecycleScope
 import com.aurikqq.planify.PREFERENCES_NAME
 import com.aurikqq.planify.Repository
 import com.aurikqq.planify.TextWidgetDataTypes
-import com.aurikqq.planify.setTextWidgetData
+//import com.aurikqq.planify.setTextWidgetData
 import com.aurikqq.planify.ui.theme.PlanifyTheme
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class WidgetSetupActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -106,7 +102,7 @@ class WidgetSetupActivity : ComponentActivity() {
                                 enabled = true,
                                 onClick = {
                                     lifecycleScope.launch {
-                                        setTextWidgetData(TextWidgetDataTypes.PLANS, day.second, context)
+                                        //setTextWidgetData(TextWidgetDataTypes.PLANS, day.second, context)
                                     }
                                 }
                             )
@@ -157,7 +153,7 @@ class WidgetSetupActivity : ComponentActivity() {
                                 enabled = true,
                                 onClick = {
                                     lifecycleScope.launch {
-                                        setTextWidgetData(TextWidgetDataTypes.NOTE, note.id, context)
+                                        //setTextWidgetData(TextWidgetDataTypes.NOTE, note.id, context)
                                         Log.d("Widget", "Started setting, type: note, id: ${note.id}")
                                     }
                                 }

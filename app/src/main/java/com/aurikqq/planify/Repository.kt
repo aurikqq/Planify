@@ -7,7 +7,6 @@ import android.net.NetworkCapabilities
 import android.util.Log
 import android.widget.Toast
 import androidx.annotation.StringRes
-import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.edit
 import com.aurikqq.planify.viewmodels.Note
 import com.google.firebase.Firebase
@@ -428,7 +427,7 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
             putString(TEXT_WIDGET_DATA, data)
         }
     }
-    suspend fun updateTextWidgetData(type: TextWidgetDataTypes, data: String) {
-        updateTextWidget(type, data, context)
-    }
+//    suspend fun updateTextWidgetData(type: TextWidgetDataTypes, data: String) {
+//        updateTextWidget(type, data, context)
+//    }
 }

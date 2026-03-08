@@ -35,8 +35,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Button
@@ -77,14 +75,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.aurikqq.planify.PREFERENCES_NAME
 import com.aurikqq.planify.R
 import com.aurikqq.planify.Repository
-import com.aurikqq.planify.TextWidgetDataTypes
-import com.aurikqq.planify.snowfall
 import com.aurikqq.planify.ui.theme.PlanifyTheme
-import com.aurikqq.planify.updateTextWidget
 import com.aurikqq.planify.viewmodels.Note
 import com.aurikqq.planify.viewmodels.NotesScreenViewModel
 import com.aurikqq.planify.viewmodels.NotesScreenViewModelFactory
-import kotlinx.coroutines.coroutineScope
 
 data class NotesScreenUiState(
     val notes: MutableList<Note> = mutableListOf(),
@@ -133,7 +127,7 @@ fun NotesScreen(modifier: Modifier = Modifier) {
             .fillMaxSize()
             .imePadding()
             .animateContentSize()
-            .snowfall()
+            //.snowfall()
     ) {
         if (uiState.notes.isNotEmpty()) {
             items(uiState.notes) { note ->

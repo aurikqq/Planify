@@ -6,6 +6,8 @@ import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.glance.Button
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
@@ -18,6 +20,8 @@ import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
 import androidx.glance.layout.fillMaxSize
+import androidx.glance.state.GlanceStateDefinition
+import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.Text
 import com.aurikqq.planify.PREFERENCES_NAME
 import com.aurikqq.planify.Repository
@@ -41,9 +45,15 @@ class Widget : GlanceAppWidget() {
         )
     )
 
+    override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
+
+    val noteId = stringPreferencesKey("noteId")
+    val noteTitle = stringPreferencesKey("noteTitle")
+    val noteText = stringPreferencesKey("noteText")
+
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent {
-            WidgetContent()
+            //WidgetContent()
         }
     }
 
@@ -56,24 +66,22 @@ class Widget : GlanceAppWidget() {
     }
 
     @Composable
-    fun WidgetContent() {
+    fun WidgetContent(prefs: Preferences) {
         val context = LocalContext.current
         val intent = Intent(context, WidgetSetupActivity::class.java).setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
-        val repo = Repository(context.getSharedPreferences(
-            PREFERENCES_NAME, Context.MODE_PRIVATE), context)
-        val title = repo.getTextWidgetTitle()
-        val text = repo.getTextWidgetText()
-        Log.d("Wigdet", "Widget info - title: $title, text: $text. title.isNotBlank = ${title.isNotBlank()}")
+        val noteId = prefs[noteId].orEmpty()
+        val noteTitle = prefs[noteText].orEmpty()
+        val noteText = prefs[noteText].orEmpty()
 
         Box(
             modifier = GlanceModifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            if (title.isNotBlank()) {
+            if (noteTitle.isNotBlank()) {
                 Column {
-                    Text(title)
-                    Text(text)
+                    Text(noteTitle)
+                    Text(noteText)
                 }
             }
             else {

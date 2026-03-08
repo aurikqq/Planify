@@ -11,7 +11,6 @@ import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,7 +28,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
@@ -65,13 +63,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -83,7 +79,6 @@ import com.aurikqq.planify.AlarmScheduler
 import com.aurikqq.planify.R
 import com.aurikqq.planify.createNotificationChannel
 import com.aurikqq.planify.isTablet
-import com.aurikqq.planify.snowfall
 import com.aurikqq.planify.viewmodels.PlansScreenViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -170,18 +165,18 @@ fun DaysListItem(
             }
         }
 
-        if (isSelected) {
-            Image(
-                painterResource(
-                    R.drawable.snowflake
-                ),
-                null,
-                modifier = Modifier
-                    .size(32.dp)
-                    .offset(animateDpAsState(if (isDaysListEditing) 164.dp else 228.dp).value, 0.dp)
-                    .rotate(15f)
-            )
-        }
+//        if (isSelected) {
+//            Image(
+//                painterResource(
+//                    R.drawable.snowflake
+//                ),
+//                null,
+//                modifier = Modifier
+//                    .size(32.dp)
+//                    .offset(animateDpAsState(if (isDaysListEditing) 164.dp else 228.dp).value, 0.dp)
+//                    .rotate(15f)
+//            )
+//        }
     }
 }
 
@@ -267,11 +262,11 @@ fun DailyPlansScreen(
         stringResource(R.string.bottom_text_no_plans_0),
         stringResource(R.string.bottom_text_no_plans_1),
         stringResource(R.string.bottom_text_no_plans_2),
-        stringResource(R.string.bottom_text_no_plans_xmas),
-        stringResource(R.string.bottom_text_no_plans_xmas_2),
-        stringResource(R.string.bottom_text_no_plans_xmas_3),
-        stringResource(R.string.bottom_text_no_plans_xmas_4),
-        stringResource(R.string.bottom_text_no_plans_xmas_5)
+        //stringResource(R.string.bottom_text_no_plans_xmas),
+        //stringResource(R.string.bottom_text_no_plans_xmas_2),
+        //stringResource(R.string.bottom_text_no_plans_xmas_3),
+        //stringResource(R.string.bottom_text_no_plans_xmas_4),
+        //stringResource(R.string.bottom_text_no_plans_xmas_5)
     )
 
     val labelText = remember { bottomLabels.random() }
@@ -293,7 +288,7 @@ fun DailyPlansScreen(
             .fillMaxSize()
             .imePadding()
             .animateContentSize()
-            .snowfall()
+            //.snowfall()
     ) {
         if (uiState.havePlans && uiState.plansForSelectedDate.isNotBlank()) {
             item {

@@ -277,13 +277,18 @@ fun MainScreen(
                         .size(256.dp, 32.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.AcUnit,
+                        painter = painterResource(R.drawable.ic_launcher_monochrome),
                         contentDescription = null,
                         modifier = Modifier.size(28.dp),
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.size(8.dp))
-                    PlanifyTitle()
+                    Text(
+                        text = "Planify",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
                 LazyColumn(
                     modifier = Modifier.weight(1f)
@@ -381,13 +386,18 @@ fun DrawerContent(
                 .size(256.dp, 32.dp)
         ) {
             Icon(
-                imageVector = Icons.Default.AcUnit,
+                painter = painterResource(R.drawable.ic_launcher_monochrome),
                 contentDescription = null,
                 modifier = Modifier.size(28.dp),
                 tint = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.size(8.dp))
-            PlanifyTitle()
+            Text(
+                text = "Planify",
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
         }
 
         LazyColumn(
@@ -440,47 +450,47 @@ fun DrawerContent(
     }
 }
 
-@Composable
-fun PlanifyTitle() {
-    val inline = mapOf(
-        "hat" to InlineTextContent(
-            Placeholder(
-                width = 20.sp,
-                height = 26.sp,
-                placeholderVerticalAlign = PlaceholderVerticalAlign.TextTop
-            )
-        ) {
-            Box {
-                Text(
-                    text = "y",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Image(
-                    painterResource(R.drawable.christmas_hat),
-                    null,
-                    modifier = Modifier
-                        .size(20.dp)
-                        .align(Alignment.TopCenter)
-                        .offset(2.dp, (-5).dp)
-                        .graphicsLayer { scaleX = -1f }
-                        .rotate(-20f)
-                )
-            }
-        }
-    )
-    Text(
-        text = buildAnnotatedString {
-            append("Planif")
-            appendInlineContent("hat")
-        },
-        inlineContent = inline,
-        fontSize = 22.sp,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.primary
-    )
-}
+//@Composable
+//fun PlanifyTitle() {
+//    val inline = mapOf(
+//        "hat" to InlineTextContent(
+//            Placeholder(
+//                width = 20.sp,
+//                height = 26.sp,
+//                placeholderVerticalAlign = PlaceholderVerticalAlign.TextTop
+//            )
+//        ) {
+//            Box {
+//                Text(
+//                    text = "y",
+//                    fontSize = 22.sp,
+//                    fontWeight = FontWeight.Bold,
+//                    color = MaterialTheme.colorScheme.primary
+//                )
+////                Image(
+////                    painterResource(R.drawable.christmas_hat),
+////                    null,
+////                    modifier = Modifier
+////                        .size(20.dp)
+////                        .align(Alignment.TopCenter)
+////                        .offset(2.dp, (-5).dp)
+////                        .graphicsLayer { scaleX = -1f }
+////                        .rotate(-20f)
+////                )
+//            }
+//        }
+//    )
+//    Text(
+//        text = buildAnnotatedString {
+//            append("Planif")
+//            appendInlineContent("hat")
+//        },
+//        inlineContent = inline,
+//        fontSize = 22.sp,
+//        fontWeight = FontWeight.Bold,
+//        color = MaterialTheme.colorScheme.primary
+//    )
+//}
 
 @Composable
 fun UpdateDialog(onClickOrDismiss: () -> Unit) {

@@ -186,7 +186,7 @@ fun SettingsScreen(viewModel: SettingsScreenViewModel) {
                     end = if (isTablet(context)) 64.dp else 0.dp,
                     bottom = if (isTablet(context)) 0.dp else 80.dp)
                 )
-                .snowfall()
+                //.snowfall()
         ) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 item {

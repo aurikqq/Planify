@@ -1,14 +1,12 @@
 package com.aurikqq.planify.viewmodels
 
 import android.util.Log
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.aurikqq.planify.Repository
 import com.aurikqq.planify.TextWidgetDataTypes
 import com.aurikqq.planify.screens.NotesScreenUiState
-import com.aurikqq.planify.updateTextWidget
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -247,7 +245,7 @@ class NotesScreenViewModel(private val repo: Repository) : ViewModel() {
 
     fun updateWidget(note: Note) {
         viewModelScope.launch {
-            repo.updateTextWidgetData(TextWidgetDataTypes.NOTE, note.id)
+            //repo.updateTextWidgetData(TextWidgetDataTypes.NOTE, note.id)
         }
     }
 }

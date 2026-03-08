@@ -96,7 +96,7 @@ fun HistoryScreen() {
         modifier = Modifier
             .fillMaxSize()
             .animateContentSize()
-            .snowfall()
+            //.snowfall()
     ) {
         if (uiState.plansList.isNotEmpty()) {
             items(uiState.plansList) { plan ->
