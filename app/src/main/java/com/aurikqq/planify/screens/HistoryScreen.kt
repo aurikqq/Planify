@@ -42,6 +42,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -79,12 +80,6 @@ fun HistoryScreen() {
 
     val uiState by viewModel.uiState.collectAsState()
 
-    if (uiState.isSignedIn && viewModel.isOnline()) {
-        LaunchedEffect(Unit) {
-            viewModel.getPlansFromDatabase()
-        }
-    }
-
     val height by animateDpAsState(if (uiState.plansList.isNotEmpty()) 24.dp else 48.dp, tween())
     LazyColumn(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -99,8 +94,8 @@ fun HistoryScreen() {
             //.snowfall()
     ) {
         if (uiState.plansList.isNotEmpty()) {
-            items(uiState.plansList) { plan ->
-                var isCardExpanded by remember { mutableStateOf(plan == uiState.plansList.last()) }
+            items(uiState.plansList, key = { it.second }) { plan ->
+                var isCardExpanded by rememberSaveable(plan.second) { mutableStateOf(false) }
                 val deg by animateFloatAsState(if (isCardExpanded) 180f else 0f)
                 Card(
                     elevation = CardDefaults.cardElevation(4.dp),

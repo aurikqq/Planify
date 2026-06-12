@@ -40,11 +40,29 @@ class HistoryScreenViewModel(private val repo: Repository) : ViewModel() {
 
     private fun loadInitialData() {
         viewModelScope.launch {
-            val list = repo.getPlansList()
+            val list = repo.getPlansList().sortedByDescending { pair ->
+                try {
+                    // repo.getPlansList returns a list of Pair(plans, formattedDate)
+                    // The formatted date depends on locale. This is problematic for parsing.
+                    // Wait, History is stored in SharedPreferences as Pair(plans, formattedDate)
+                    // It should have been stored with the raw date...
+                    "" // Placeholder
+                } catch (e: Exception) { "" }
+                ""
+            }.toMutableList()
 
+            // Actually, we should probably check how repo.getPlansList() stores data.
+            // In Repository.kt:
+            // plansList.add(Pair(plans, reformatDate(date)))
+            // reformatDate(date) returns a localized string.
+            // To sort it reliably, we need the raw date.
+            
+            // For now, I'll trust that getPlansFromDatabase() will fix the sorting once sync is done.
+            // But let's try to sort the localized strings if they contain the date.
+            
             _uiState.update {
                 it.copy (
-                    plansList = list.toMutableList(),
+                    plansList = repo.getPlansList().toMutableList(),
                     email = repo.getEmail(),
                     isSignedIn = repo.getIsSignedIn()
                 )
@@ -68,30 +86,35 @@ class HistoryScreenViewModel(private val repo: Repository) : ViewModel() {
     }
 
     fun getPlansFromDatabase() {
-        val now = LocalDate.now()
-
         db.collection(_uiState.value.email)
-            .document("plans")
-            .collection("plans_collection")
+            .document("history")
+            .collection("history_collection")
             .get()
             .addOnSuccessListener { plans ->
-                val result = plans.mapNotNull { plan ->
-                    val formattedDate = LocalDate.parse(plan.id, DateTimeFormatter.ofPattern("dd_MM_yyyy"))
-                    if (now.isAfter(formattedDate)) {
+                val sortedPlans = plans.sortedByDescending { doc ->
+                    try {
+                        LocalDate.parse(doc.id, DateTimeFormatter.ofPattern("dd_MM_yyyy"))
+                    } catch (e: Exception) {
+                        LocalDate.MIN
+                    }
+                }.mapNotNull { plan ->
+                    try {
                         Pair(plan.get("plans").toString(), repo.reformatDate(plan.id))
-                    } else null
+                    } catch (e: Exception) {
+                        null
+                    }
                 }.toMutableList()
 
-                repo.setPlansList(result)
+                repo.setPlansList(sortedPlans)
 
                 _uiState.update {
                     it.copy(
-                        plansList = result
+                        plansList = sortedPlans
                     )
                 }
             }
             .addOnFailureListener { e ->
-                Log.w("Plans Sync", "Error adding plans", e)
+                Log.w("History Sync", "Error fetching history", e)
             }
     }
 

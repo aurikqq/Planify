@@ -2,6 +2,7 @@ package com.aurikqq.planify
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.res.Configuration
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.util.Log
@@ -11,9 +12,13 @@ import androidx.core.content.edit
 import com.aurikqq.planify.viewmodels.Note
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.serialization.json.Json
 import java.time.LocalDate
@@ -73,7 +78,7 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
                 else mutableListOf()
 
             try {
-                if (plansList[plansList.lastIndex].second == reformatDate(date)) {
+                if (plansList.isNotEmpty() && plansList[plansList.lastIndex].second == reformatDate(date)) {
                     plansList[plansList.lastIndex] = plansList.last().copy(
                         first = plans
                     )
@@ -89,12 +94,35 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
             sharedPreferences.edit {
                 putString(KEY_DAILY_PLANS_HISTORY, jsonPlansList)
             }
+
+            savePlansToHistoryDatabase(date, plans)
         }
 
         sharedPreferences.edit {
             putString("${KEY_PLANS}_$date", plans)
             putBoolean("${KEY_HAVE_PLANS}_$date", true)
             putBoolean(KEY_IS_FIRST_LAUNCH, false)
+        }
+    }
+
+    fun savePlansToHistoryDatabase(date: String, plans: String) {
+        val email = sharedPreferences.getString(USER_EMAIL, "") ?: ""
+        if (email.isNotBlank() && isOnline()) {
+            val plan = hashMapOf(
+                "plans" to plans,
+            )
+
+            db.collection(email)
+                .document("history")
+                .collection("history_collection")
+                .document(date)
+                .set(plan)
+                .addOnSuccessListener {
+                    Log.d("History Sync", "Plans added to history: $date")
+                }
+                .addOnFailureListener { e ->
+                    Log.w("History Sync", "Error adding plans to history", e)
+                }
         }
     }
 
@@ -138,15 +166,15 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
         if (isSignedIn && isOnline()) {
             println("deleting")
             db.collection(email)
-                .document("plans")
-                .collection("plans_collection")
+                .document("history")
+                .collection("history_collection")
                 .document(reformatHistoryDate(date))
                 .delete()
                 .addOnSuccessListener { plansRef ->
-                    Log.d("Plans Sync", "Plans deleted: $plansRef")
+                    Log.d("History Sync", "History deleted: $plansRef")
                 }
                 .addOnFailureListener { e ->
-                    Log.w("Plans Sync", "Error deleting plans", e)
+                    Log.w("History Sync", "Error deleting history", e)
                 }
         }
 
@@ -205,14 +233,16 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
 
     fun reformatDate(date: String) : String {
         val inputFormatter = DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())
-        val outputFormatter = DateTimeFormatter.ofPattern("dd MMMM yyyy, EEEE", Locale.getDefault())
+        val pattern = android.text.format.DateFormat.getBestDateTimePattern(Locale.getDefault(), "dMMMMyEEE")
+        val outputFormatter = DateTimeFormatter.ofPattern(pattern, Locale.getDefault())
 
         val parsedDate = LocalDate.parse(date, inputFormatter)
         return parsedDate.format(outputFormatter)
     }
 
     fun reformatHistoryDate(date: String) : String {
-        val inputFormatter = DateTimeFormatter.ofPattern("dd MMMM yyyy, EEEE", Locale.getDefault())
+        val pattern = android.text.format.DateFormat.getBestDateTimePattern(Locale.getDefault(), "dMMMMyEEE")
+        val inputFormatter = DateTimeFormatter.ofPattern(pattern, Locale.getDefault())
         val outputFormatter = DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())
 
         val parsedDate = LocalDate.parse(date, inputFormatter)
@@ -335,6 +365,10 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
     }
 
     fun getIsInDarkTheme() : Boolean {
+        if (!sharedPreferences.contains(IS_DARK_THEME_ON)) {
+            val uiMode = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+            return uiMode == Configuration.UI_MODE_NIGHT_YES
+        }
         return sharedPreferences.getBoolean(IS_DARK_THEME_ON, false)
     }
 
@@ -403,6 +437,21 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
                 caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }
 
+    fun observeConnectivity(): Flow<Boolean> = callbackFlow {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val callback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: android.net.Network) {
+                trySend(true)
+            }
+            override fun onLost(network: android.net.Network) {
+                trySend(false)
+            }
+        }
+        connectivityManager.registerDefaultNetworkCallback(callback)
+        trySend(isOnline())
+        awaitClose { connectivityManager.unregisterNetworkCallback(callback) }
+    }.distinctUntilChanged()
+
     fun getTextWidgetText() : String {
         return sharedPreferences.getString(TEXT_WIDGET_TEXT, "") ?: ""
     }
@@ -425,6 +474,80 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
     fun setTextWidgetData(data: String) {
         sharedPreferences.edit {
             putString(TEXT_WIDGET_DATA, data)
+        }
+    }
+
+    fun setPlansPrefix(prefix: String) {
+        sharedPreferences.edit {
+            putString(PLANS_PREFIX, prefix)
+        }
+    }
+    fun getPlansPrefix() : String {
+        return sharedPreferences.getString(PLANS_PREFIX, "--") ?: "--"
+    }
+
+    fun setIsPrefixHintShown(value: Boolean) {
+        sharedPreferences.edit {
+            putBoolean(IS_PREFIX_HINT_SHOWN, value)
+        }
+    }
+    fun getIsPrefixHintShown() : Boolean {
+        return sharedPreferences.getBoolean(IS_PREFIX_HINT_SHOWN, true)
+    }
+
+    fun updatePrefixInAllPlans(oldPrefix: String, newPrefix: String) {
+        if (oldPrefix == newPrefix) return
+
+        fun updatePlans(plans: String): String {
+            return plans.lines().joinToString("\n") { line ->
+                if (line.trimStart().startsWith(oldPrefix)) {
+                    val leadingSpaces = line.takeWhile { it.isWhitespace() }
+                    leadingSpaces + newPrefix + line.trimStart().substring(oldPrefix.length)
+                } else {
+                    line
+                }
+            }
+        }
+
+        val email = getEmail()
+        val isSignedIn = getIsSignedIn()
+        val online = isOnline()
+
+        // 1. Update KEY_DAILY_PLANS_LIST
+        val daysList = getDaysList()
+        val updatedDaysList = daysList.map { it.copy(first = updatePlans(it.first)) }.toMutableList()
+        saveDaysList(updatedDaysList)
+
+        // 2. Update KEY_DAILY_PLANS_HISTORY
+        val historyList = getPlansList()
+        val updatedHistoryList = historyList.map { it.copy(first = updatePlans(it.first)) }.toMutableList()
+        setPlansList(updatedHistoryList)
+
+        // 3. Update individual SharedPreferences and Sync to DB
+        val datesFromList = daysList.map { it.second }
+        val datesFromHistory = historyList.map {
+            try { reformatHistoryDate(it.second) } catch (e: Exception) { "" }
+        }.filter { it.isNotEmpty() }
+
+        val allDates = (datesFromList + datesFromHistory).distinct()
+
+        allDates.forEach { date ->
+            val oldPlans = getPlansForDate(date)
+            if (oldPlans.isNotBlank()) {
+                val newPlans = updatePlans(oldPlans)
+                sharedPreferences.edit { putString("${KEY_PLANS}_$date", newPlans) }
+
+                if (isSignedIn && online) {
+                    val planMap = hashMapOf("plans" to newPlans)
+                    db.collection(email)
+                        .document("plans")
+                        .collection("plans_collection")
+                        .document(date)
+                        .set(planMap)
+
+                    savePlansToHistoryDatabase(date, newPlans)
+                }
+            }
         }
     }
 //    suspend fun updateTextWidgetData(type: TextWidgetDataTypes, data: String) {

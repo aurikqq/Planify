@@ -1,44 +1,47 @@
 [versions]
-activity = "1.11.0"
+activity = "1.13.0"
 activityComposeVersion = "1.9.0"
-agp = "9.0.0"
+agp = "9.2.1"
 androidxNavigationCompose = "2.8.0"
-animation = "1.9.3"
+animation = "1.11.2"
 apkupdaterLibraryVersion = "v2.1.0"
 coilCompose = "2.7.0"
-coreSplashscreen = "1.0.1"
-firebaseBom = "34.3.0"
-foundation = "1.9.3"
-kotlin = "2.2.20"
-coreKtx = "1.17.0"
+coreSplashscreen = "1.2.0"
+firebaseBom = "34.14.1"
+foundation = "1.11.2"
+kotlin = "2.4.0"
+coreKtx = "1.19.0"
 junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
-kotlinxSerializationJson = "1.9.0"
-lifecycleRuntimeKtx = "2.9.4"
-activityCompose = "1.11.0"
-composeBom = "2025.09.01"
-lifecycleViewmodelCompose = "2.9.4"
+kotlinxSerializationJson = "1.11.0"
+lifecycleRuntimeKtx = "2.10.0"
+activityCompose = "1.13.0"
+composeBom = "2026.05.01"
+lifecycleViewmodelCompose = "2.10.0"
 materialIconsCore = "1.7.8"
 navigationComposeVersion = "2.8.0"
-okhttp = "5.1.0"
-okhttpBom = "5.1.0"
-workRuntimeKtx = "2.10.5"
-navigationCompose = "2.9.5"
+okhttp = "5.4.0"
+okhttpBom = "5.4.0"
+workRuntimeKtx = "2.11.2"
+navigationCompose = "2.9.8"
+concurrentFutures = "1.3.0"
 firebaseCrashlyticsBuildtools = "3.0.6"
-animationCore = "1.9.3"
-playServicesAuth = "21.4.0"
-googleid = "1.1.1"
-androidxNavigationComposeVersion = "2.9.6"
-material = "1.10.0"
-appcompat = "1.6.1"
-constraintlayout = "2.1.4"
-navigationFragmentKtx = "2.6.0"
-navigationUiKtx = "2.6.0"
+animationCore = "1.11.2"
+playServicesAuth = "21.6.0"
+googleid = "1.2.0"
+androidxNavigationComposeVersion = "2.9.8"
+material = "1.14.0"
+appcompat = "1.7.1"
+constraintlayout = "2.2.1"
+navigationFragmentKtx = "2.9.8"
+navigationUiKtx = "2.9.8"
 material3WindowSizeClass = "1.4.0"
+glance = "1.1.1"
 
 [libraries]
 androidx-activity = { module = "androidx.activity:activity", version.ref = "activity" }
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "androidxNavigationComposeVersion" }
 androidx-compose-animation = { module = "androidx.compose.animation:animation", version.ref = "animation" }
 androidx-compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "foundation" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -46,7 +49,6 @@ androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", versi
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
 androidx-material-icons-core = { module = "androidx.compose.material:material-icons-core", version.ref = "materialIconsCore" }
 androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIconsCore" }
-androidx-navigation-compose-v280 = { module = "androidx.navigation:navigation-compose", version.ref = "androidxNavigationCompose" }
 androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workRuntimeKtx" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
 firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
@@ -67,24 +69,25 @@ androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
 logging-interceptor = { module = "com.squareup.okhttp3:logging-interceptor" }
-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 okhttp-bom = { module = "com.squareup.okhttp3:okhttp-bom", version.ref = "okhttpBom" }
 okhttp3-okhttp = { module = "com.squareup.okhttp3:okhttp" }
-thirdparty = { module = "com.nothing:thirdparty" }
 androidx-compose-animation-core = { group = "androidx.compose.animation", name = "animation-core", version.ref = "animationCore" }
 play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version.ref = "playServicesAuth" }
 googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
-androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "androidxNavigationComposeVersion" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 androidx-navigation-fragment-ktx = { group = "androidx.navigation", name = "navigation-fragment-ktx", version.ref = "navigationFragmentKtx" }
 androidx-navigation-ui-ktx = { group = "androidx.navigation", name = "navigation-ui-ktx", version.ref = "navigationUiKtx" }
 androidx-compose-material3-window-size-class1 = { group = "androidx.compose.material3", name = "material3-window-size-class", version.ref = "material3WindowSizeClass" }
+androidx-glance = { group = "androidx.glance", name = "glance", version.ref = "glance" }
+androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
+androidx-glance-material3 = { group = "androidx.glance", name = "glance-material3", version.ref = "glance" }
+androidx-concurrent-futures = { group = "androidx.concurrent", name = "concurrent-futures", version.ref = "concurrentFutures" }
+androidx-concurrent-futures-ktx = { group = "androidx.concurrent", name = "concurrent-futures-ktx", version.ref = "concurrentFutures" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-

@@ -31,7 +31,7 @@ class WidgetReceiver: GlanceAppWidgetReceiver() {
 }
 
 class Widget : GlanceAppWidget() {
-    override val previewSizeMode = SizeMode.Responsive(
+    val previewSizeMode = SizeMode.Responsive(
         setOf(
             DpSize(245.dp, 115.dp), // 4x2
             DpSize(260.dp, 180.dp) // medium width, height w/ header
@@ -57,7 +57,7 @@ class Widget : GlanceAppWidget() {
         }
     }
 
-    override suspend fun providePreview(context: Context, widgetCategory: Int) {
+    suspend fun providePreview(context: Context, widgetCategory: Int) {
         provideContent {
             //WidgetContent()
             /* TODO

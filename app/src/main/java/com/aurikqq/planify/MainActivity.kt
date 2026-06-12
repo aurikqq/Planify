@@ -44,6 +44,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.BottomAppBarDefaults
+import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -90,6 +91,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.aurikqq.planify.screens.DailyPlansScreen
+import com.aurikqq.planify.screens.DrawerContent
 import com.aurikqq.planify.screens.MainScreen
 import com.aurikqq.planify.screens.NotesScreen
 import com.aurikqq.planify.screens.PlansScreenUiState
@@ -121,8 +123,8 @@ class MainActivity : ComponentActivity() {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
             lifecycleScope.launch(Dispatchers.Default) {
-                GlanceAppWidgetManager(this@MainActivity)
-                    .setWidgetPreviews(WidgetReceiver::class)
+                //GlanceAppWidgetManager(this@MainActivity)
+                    //.setWidgetPreviews(WidgetReceiver::class)
             }
         }
 
@@ -251,23 +253,23 @@ fun AppActivity() {
 
     val uiState by viewModel.uiState.collectAsState()
     val settingsUiState by settingsViewModel.uiState.collectAsState()
+    val tabletMode = isTablet(context)
 
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val drawerState = remember{ DrawerState(DrawerValue.Closed) }
     var drawerContent by remember { mutableStateOf<@Composable () -> Unit>({}) }
     val scope = rememberCoroutineScope()
-
-    LaunchedEffect(Unit) {
-        scope.launch { drawerState.close() }
-    }
 
     var plansCardRect by remember { mutableStateOf<Rect?>(null) }
     var launchAnimationPlaying by remember { mutableStateOf(true) }
 
+    var isModalGesturesEnabled by remember { mutableStateOf(true) }
+
     PlanifyTheme(darkTheme = settingsUiState.isDarkThemeOn) {
-        if (!isTablet(context)) {
+        if (!tabletMode) {
             ModalNavigationDrawer(
                 drawerState = drawerState,
-                drawerContent = { drawerContent() },
+                drawerContent = { DrawerContent(uiState, viewModel, drawerState, scope) },
+                gesturesEnabled = isModalGesturesEnabled,
                 modifier = Modifier
                     .fillMaxSize()
             ) {
@@ -314,7 +316,9 @@ fun AppActivity() {
                                         drawerState = drawerState,
                                         scope = scope,
                                         modifier = Modifier,
-                                        { drawerContent = it },
+                                        { drawerContent =
+                                            { DrawerContent(uiState, viewModel, drawerState, scope) }
+                                        },
                                         //{ plansCardRect = it }
                                     )
                                 }
@@ -348,7 +352,7 @@ fun AppActivity() {
                             .align(Alignment.BottomCenter)
                     ) {
                         UpdateLabel()
-                        if (!isTablet(context)) BottomBar(navController)
+                        if (!tabletMode) BottomBar(navController)
                     }
                 }
             }
@@ -400,7 +404,9 @@ fun AppActivity() {
                                         drawerState = drawerState,
                                         scope = scope,
                                         modifier = Modifier,
-                                        { drawerContent = it },
+                                        { drawerContent =
+                                            { DrawerContent(uiState, viewModel, drawerState, scope) }
+                                        },
                                         //{ plansCardRect = it }
                                     )
                                 }
@@ -432,7 +438,7 @@ fun AppActivity() {
                         .align(Alignment.BottomCenter)
                 ) {
                     UpdateLabel()
-                    if (!isTablet(context)) BottomBar(navController)
+                    if (!tabletMode) BottomBar(navController)
                 }
             }
         }

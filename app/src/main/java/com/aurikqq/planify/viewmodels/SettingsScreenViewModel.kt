@@ -40,7 +40,9 @@ open class SettingsScreenViewModel(private val repo: Repository) : ViewModel() {
                     resetNotificationsEnabled = repo.getResetNotificationsEnabled(),
                     isDarkThemeOn = repo.getIsInDarkTheme(),
                     isSignedIn = repo.getIsSignedIn(),
-                    email = repo.getEmail()
+                    email = repo.getEmail(),
+                    plansPrefix = repo.getPlansPrefix(),
+                    isPrefixHintShown = repo.getIsPrefixHintShown()
                 )
             }
         }
@@ -100,5 +102,30 @@ open class SettingsScreenViewModel(private val repo: Repository) : ViewModel() {
                 email = ""
             )
         }
+    }
+
+    fun setPlansPrefix(prefix: String) {
+        val oldPrefix = repo.getPlansPrefix()
+        repo.setPlansPrefix(prefix)
+        repo.updatePrefixInAllPlans(oldPrefix, prefix)
+
+        _uiState.update {
+            it.copy(
+                plansPrefix = prefix
+            )
+        }
+    }
+
+    fun hidePrefixHint() {
+        repo.setIsPrefixHintShown(false)
+        _uiState.update {
+            it.copy(
+                isPrefixHintShown = false
+            )
+        }
+    }
+
+    fun getPlansPrefix(): String {
+        return repo.getPlansPrefix()
     }
 }

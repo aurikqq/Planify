@@ -6,6 +6,7 @@ import android.os.Build
 import android.util.Log
 import android.widget.Toast
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
@@ -20,6 +21,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,19 +40,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.AddTask
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.InvertColors
-import androidx.compose.material.icons.filled.Keyboard
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.NotificationsNone
+import androidx.compose.material.icons.filled.Start
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBarDefaults
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonColors
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -58,12 +55,12 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
@@ -97,8 +94,10 @@ import coil.compose.AsyncImage
 import com.aurikqq.planify.AlarmScheduler
 import com.aurikqq.planify.CHANGELOG
 import com.aurikqq.planify.R
+import com.aurikqq.planify.components.AnimatedButton
+import com.aurikqq.planify.components.AnimatedElevatedButton
+import com.aurikqq.planify.components.AnimatedTextButton
 import com.aurikqq.planify.isTablet
-import com.aurikqq.planify.snowfall
 import com.aurikqq.planify.ui.theme.PlanifyTheme
 import com.aurikqq.planify.viewmodels.SettingsScreenViewModel
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
@@ -107,6 +106,7 @@ import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingExcept
 import kotlinx.coroutines.delay
 import java.security.SecureRandom
 import java.util.Base64
+import kotlin.time.Duration.Companion.milliseconds
 
 data class SettingsScreenUiState (
     val plansNotificationsEnabled: Boolean = true,
@@ -114,9 +114,12 @@ data class SettingsScreenUiState (
     val resetNotificationsEnabled: Boolean = true,
     val isDarkThemeOn: Boolean = false,
     val isSignedIn: Boolean = false,
-    val email: String = "null"
+    val email: String = "null",
+    val plansPrefix: String = "--",
+    val isPrefixHintShown: Boolean = true
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("NewApi")
 @Composable
 fun SettingsScreen(viewModel: SettingsScreenViewModel) {
@@ -127,10 +130,12 @@ fun SettingsScreen(viewModel: SettingsScreenViewModel) {
     var isThemeModalSheetShown by remember { mutableStateOf(false) }
     var isSignInBottomSheetShown by remember { mutableStateOf(false) }
     var isSyncAlertModalShown by remember { mutableStateOf(false) }
+    var isPrefixInputShown by remember { mutableStateOf(false) }
+    var isPrefixInfoBottomSheetShown by remember { mutableStateOf(false) }
 
-    var tempPlansNotificationsEnabled by remember { mutableStateOf(uiState.plansNotificationsEnabled) }
-    var tempPlansNotificationsCooldown by remember { mutableFloatStateOf(uiState.plansNotificationsCooldown) }
-    var tempResetNotificationsEnabled by remember { mutableStateOf(uiState.resetNotificationsEnabled) }
+    var tempPlansNotificationsEnabled by remember(uiState.plansNotificationsEnabled) { mutableStateOf(uiState.plansNotificationsEnabled) }
+    var tempPlansNotificationsCooldown by remember(uiState.plansNotificationsCooldown) { mutableFloatStateOf(uiState.plansNotificationsCooldown) }
+    var tempResetNotificationsEnabled by remember(uiState.resetNotificationsEnabled) { mutableStateOf(uiState.resetNotificationsEnabled) }
 
     Scaffold(topBar = { SettingsTopBar() }) { innerPadding ->
         if (isChangelogShown) {
@@ -146,14 +151,13 @@ fun SettingsScreen(viewModel: SettingsScreenViewModel) {
                     }
                     item {
                         AsyncImage(
-                            model = "https://i.pinimg.com/736x/26/90/2d/26902dc92d66500f3bab3f602d3fe4f2.jpg",
+                            model = "https://i.pinimg.com/736x/26/90/2d/26902dc92d66500f3bab3f602d3fe4f2.jpg", //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                             contentDescription = null
                         )
-                    }
-                }
+                    } }
                 },
                 confirmButton = {
-                    TextButton(onClick = { isChangelogShown = false }) {
+                    AnimatedTextButton(onClick = { isChangelogShown = false }) {
                         Text("Понял")
                     }
                 }
@@ -176,17 +180,30 @@ fun SettingsScreen(viewModel: SettingsScreenViewModel) {
             onDismiss = { isSyncAlertModalShown = false })
         }
 
+        if (isPrefixInputShown) {
+            PrefixInputModal(
+                currentPrefix = uiState.plansPrefix,
+                onClick = {
+                    isPrefixInputShown = false
+                    viewModel.setPlansPrefix(it)
+                },
+                onDismiss = { isPrefixInputShown = false }
+            )
+        }
+
+        if (isPrefixInfoBottomSheetShown) {
+            PrefixInfoBottomSheet { isPrefixInfoBottomSheetShown = false }
+        }
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-                .padding(PaddingValues(
+                .background(MaterialTheme.colorScheme.background),
+            contentPadding = PaddingValues(
                     top = innerPadding.calculateTopPadding(),
                     start = if (isTablet(context)) 64.dp else 0.dp,
                     end = if (isTablet(context)) 64.dp else 0.dp,
                     bottom = if (isTablet(context)) 0.dp else 80.dp)
-                )
-                //.snowfall()
         ) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 item {
@@ -197,7 +214,6 @@ fun SettingsScreen(viewModel: SettingsScreenViewModel) {
                     }
                 }
             }
-
 
             item {
                 SettingsCategory("Уведомления") {
@@ -227,7 +243,7 @@ fun SettingsScreen(viewModel: SettingsScreenViewModel) {
                         Spacer(Modifier.size(40.dp))
                         ListItem(
                             headlineContent = {
-                                var hours by remember { mutableFloatStateOf(tempPlansNotificationsCooldown) }
+                                var hours by remember(tempPlansNotificationsCooldown) { mutableFloatStateOf(tempPlansNotificationsCooldown) }
                                 Column {
                                     Row {
                                         RollingNumberText(hours.toInt())
@@ -279,47 +295,44 @@ fun SettingsScreen(viewModel: SettingsScreenViewModel) {
             item {
                 SettingsCategory("Поведение") {
                     ListItem(
-                        headlineContent = { Text("Быстрая запись") },
+                        headlineContent = { Text("Префикс пунктов") },
                         trailingContent = {
-                            Switch(
-                                checked = false,
-                                enabled = false,
-                                onCheckedChange = { }
+                            Text(
+                                uiState.plansPrefix,
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold
                             )
                         },
-                        leadingContent = { Icon(Icons.Default.Keyboard, null) },
-                        supportingContent = { Text(
-                            "При входе сразу появится клавиатура, если нет планов"
-                            //"Если ничего не запланировано, при открытии приложения сразу появляется клавиатура, чтобы записать свои дела можно было ещё быстрее"
-                        ) },
-                        modifier = Modifier.clickable(
+                        leadingContent = { Icon(Icons.Default.Start, null) },
+                        supportingContent = {
+                            Text(
+                                "То, что при вводе перед строкой делает её отдельным пунктом"
+                            )
+                        },
+                        modifier = Modifier.combinedClickable(
                             enabled = true,
-                            onClick = {  },
+                            onClick = {
+                                isPrefixInputShown = true
+                            },
+                            onLongClick = {
+                                isPrefixInfoBottomSheetShown = true
+                                viewModel.hidePrefixHint()
+                            },
                             interactionSource = null,
                             indication = ripple(bounded = true)
                         )
                     )
-
-                    ListItem(
-                        headlineContent = { Text("Быстрое дополнение") },
-                        trailingContent = {
-                            Switch(
-                                checked = false,
-                                enabled = false,
-                                onCheckedChange = { }
-                            )
-                        },
-                        leadingContent = { Icon(Icons.Default.AddTask, null) },
-                        supportingContent = { Text(
-                            "При входе сразу появится клавиатура, если есть планы"
-                        ) },
-                        modifier = Modifier.clickable(
-                            enabled = true,
-                            onClick = {  },
-                            interactionSource = null,
-                            indication = ripple(bounded = true)
+                }
+                AnimatedVisibility(visible = uiState.isPrefixHintShown) {
+                    Column {
+                        Spacer(Modifier.size(4.dp))
+                        Text(
+                            "Что-то не понятно? Зажми на эту настройку, чтобы получить объяснение",
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                            fontSize = 14.sp,
+                            modifier = Modifier.padding(horizontal = 16.dp)
                         )
-                    )
+                    }
                 }
             }
 
@@ -467,22 +480,20 @@ fun SignInOffer(onClick: () -> Unit) {
                 Text(
                     "Твои планы могут синхронизироваться на всех твоих устройстах! " +
                             "Для этого просто войди через Google одним касанием - и не забывай о своих делах нигде." +
-                            "\n\nВсе твои данные остаются при тебе.\nПока что синхронизация тестируется."
+                            "\n\nВсе твои данные остаются при тебе."
                 )
 
                 Spacer(Modifier.size(24.dp))
 
                 Box(Modifier.padding(bottom = 8.dp)) {
-                    Button(
+                    AnimatedButton(
                         onClick = onClick,
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                         shape = RoundedCornerShape(18.dp),
-                        colors = ButtonColors(
-                            containerColor = Color(0xFFFFFFFF),
-                            contentColor = Color(0xFF1F1F1F),
-                            disabledContentColor = ButtonDefaults.buttonColors().disabledContentColor,
-                            disabledContainerColor = ButtonDefaults.buttonColors().disabledContainerColor
-                        ),
+                        containerColor = Color(0xFFFFFFFF),
+                        contentColor = Color(0xFF1F1F1F),
+                        disabledContainerColor = Color(0xFFFFFFFF),
+                        disabledContentColor = Color(0xFF1F1F1F),
                         modifier = Modifier
                             .height(40.dp)
                     ) {
@@ -538,7 +549,7 @@ fun AccountInfo(uiState: SettingsScreenUiState, viewModel: SettingsScreenViewMod
                 Spacer(Modifier.size(12.dp))
 
                 Box(contentAlignment = Alignment.CenterEnd, modifier = Modifier.fillMaxWidth()) {
-                    TextButton(onClick = { viewModel.logOut() }) {
+                    AnimatedTextButton(onClick = { viewModel.logOut() }) {
                         Text("Выйти")
                     }
                 }
@@ -550,7 +561,7 @@ fun AccountInfo(uiState: SettingsScreenUiState, viewModel: SettingsScreenViewMod
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ThemeModalSheet(uiState: SettingsScreenUiState, viewModel: SettingsScreenViewModel, onDismiss: () -> Unit) {
-    val pics = listOf(R.drawable.snowflake, R.drawable.heart, R.drawable.christmas_hat, R.drawable.christmas_tree)
+    val pics = listOf(R.drawable.heart)
 
     val isInDarkTheme = uiState.isDarkThemeOn
     ModalBottomSheet(onDismissRequest = onDismiss) {
@@ -677,16 +688,58 @@ fun SyncAlertModal(onClick: () -> Unit, onDismiss: () -> Unit) {
                     "Запиши их куда-нибудь, чтобы потом перенести в аккаунт.")
         },
         confirmButton = {
-            ElevatedButton(onClick = onClick) {
+            AnimatedElevatedButton(onClick = onClick) {
                 Text("Продолжай")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            AnimatedTextButton(onClick = onDismiss) {
                 Text("Отмени")
             }
         }
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PrefixInputModal(currentPrefix: String, onClick: (String) -> Unit, onDismiss: () -> Unit) {
+    var tempPrefix by remember { mutableStateOf(currentPrefix) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Какой хочешь префикс?") },
+        text = { OutlinedTextField(value = tempPrefix, onValueChange = { tempPrefix = it }) },
+        confirmButton = { AnimatedElevatedButton(onClick = { onClick(tempPrefix) }) { Text("Сохрани") } },
+        dismissButton = { AnimatedTextButton(onClick = onDismiss) { Text("Отмени") } }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PrefixInfoBottomSheet(onDismiss: () -> Unit) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+                .padding(bottom = 32.dp)
+        ) {
+            Text(
+                "Что такое префикс?",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(Modifier.size(16.dp))
+            Text(
+                "Всё просто: префикс - это один или несколько символов, которые нужно ввести перед строкой при редактировании списка планов, " +
+                        "чтобы эта строка стала пунктом, который можно пометить выполеннным."
+            )
+            Spacer(Modifier.size(8.dp))
+            Text(
+                "С помощью префикса можно, например, можно разделить планы и комментарии к ним."
+            )
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -761,7 +814,7 @@ suspend fun signIn(viewModel: SettingsScreenViewModel,request: GetCredentialRequ
     val e: Exception? = null
     val TAG = "Sign In"
 
-    delay(250)
+    delay(250.milliseconds)
     try {
         val result = credentialManager.getCredential(
             request = request,

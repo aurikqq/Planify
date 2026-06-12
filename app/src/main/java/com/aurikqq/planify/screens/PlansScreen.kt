@@ -1,11 +1,13 @@
 package com.aurikqq.planify.screens
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
@@ -41,10 +43,10 @@ import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.Icon
@@ -63,6 +65,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -77,6 +80,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.aurikqq.planify.AlarmScheduler
 import com.aurikqq.planify.R
+import com.aurikqq.planify.components.AnimatedButton
+import com.aurikqq.planify.components.AnimatedElevatedButton
 import com.aurikqq.planify.createNotificationChannel
 import com.aurikqq.planify.isTablet
 import com.aurikqq.planify.viewmodels.PlansScreenViewModel
@@ -87,6 +92,9 @@ import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import java.time.temporal.ChronoUnit
 import java.util.Locale
+import androidx.compose.ui.platform.LocalLocale
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.style.TextDecoration
 
 data class PlansScreenUiState(
     val days: List<Pair<String, String>> = emptyList(),
@@ -104,7 +112,8 @@ data class PlansScreenUiState(
     val plansNotificationsEnabled: Boolean = true,
     val resetNotificationsEnabled: Boolean = true,
     val isSignedIn: Boolean = false,
-    val email: String = "null"
+    val email: String = "null",
+    val plansPrefix: String = ""
 )
 
 @Composable
@@ -203,7 +212,7 @@ fun DaysList(
 
                 for (day in uiState.days) {
                     val selected = day.second == uiState.selectedPickerDate
-                    val format = DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())
+                    val format = DateTimeFormatter.ofPattern("dd_MM_yyyy", LocalLocale.current.platformLocale)
 
                     val itemDate = LocalDate.parse(day.second, format)
                     val currentDate = LocalDate.now()
@@ -211,16 +220,13 @@ fun DaysList(
                     val date: String
 
                     if (difference != 1L) {
-                        val outputFormat =
-                            if (difference in 2..7) DateTimeFormatter.ofPattern(
-                                "d MMMM, E",
-                                Locale.getDefault()
-                            )
-                            else if (currentDate.year == itemDate.year) DateTimeFormatter.ofPattern(
-                                "d MMMM",
-                                Locale.getDefault()
-                            )
-                            else DateTimeFormatter.ofPattern("d MMMM yyyy", Locale.getDefault())
+                        val pattern = if (difference in 2..7) "dMMMM E"
+                                     else if (currentDate.year == itemDate.year) "dMMMM"
+                                     else "dMMMM yyyy"
+                        val outputFormat = DateTimeFormatter.ofPattern(
+                            android.text.format.DateFormat.getBestDateTimePattern(LocalLocale.current.platformLocale, pattern),
+                            LocalLocale.current.platformLocale
+                        )
 
                         date = LocalDate.parse(day.second, format)
                             .format(outputFormat)
@@ -271,12 +277,6 @@ fun DailyPlansScreen(
 
     val labelText = remember { bottomLabels.random() }
 
-    if (uiState.isSignedIn && !isTablet(context) && viewModel.isOnline()) {
-        LaunchedEffect(Unit) {
-            viewModel.getPlansFromDatabase()
-        }
-    }
-
     LazyColumn(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = if (uiState.havePlans) Arrangement.Top else Arrangement.Center,
@@ -324,10 +324,29 @@ fun DailyPlansScreen(
                             modifier = Modifier
                                 .padding(bottom = 8.dp)
                         )
-                        Text(
-                            text = uiState.plansForSelectedDate,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        uiState.plansForSelectedDate.lines().forEachIndexed { index, str ->
+                            if (str.isNotBlank()) {
+                                if (str.replace(" ", "").startsWith(uiState.plansPrefix)) {
+                                    val isDone = str.endsWith('*')
+                                    val cleanText = if (isDone) {
+                                        str.removeSuffix("*").replace(uiState.plansPrefix, "")
+                                    } else {
+                                        str.replace(uiState.plansPrefix, "")
+                                    }
+
+                                    PlansUnit(
+                                        isDone = isDone,
+                                        text = cleanText,
+                                        onClick = { viewModel.togglePlanCompletion(index) }
+                                    )
+                                } else {
+                                    Text(
+                                        text = str,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.size(32.dp))
@@ -376,7 +395,9 @@ fun DailyPlansScreen(
             }
             Spacer(modifier = Modifier.size(16.dp))
             if (!uiState.havePlans) {
-                Button(
+                val isEnabled = uiState.tempPlanInput.isNotBlank()
+
+                AnimatedButton(
                     onClick = {
                         viewModel.updateAccount()
                         if (uiState.isSignedIn && viewModel.isOnline()) {
@@ -388,37 +409,38 @@ fun DailyPlansScreen(
 
                         createNotificationChannel(context)
                         AlarmScheduler.schedulePlansReset(context)
-
-
                     },
-                    enabled = uiState.tempPlanInput.isNotBlank(),
+                    enabled = isEnabled
                 ) {
                     Text(text = stringResource(R.string.button_set_plans))
                 }
             } else {
                 Row {
-                    ElevatedButton(
+                    val isAddEnabled = uiState.tempPlanInput.isNotBlank() && !uiState.isPlanEditing
+
+                    AnimatedElevatedButton(
                         onClick = {
                             viewModel.addPlans()
                             if (uiState.isSignedIn && viewModel.isOnline())
                                 viewModel.sendPlansToDatabase("${uiState.plansForSelectedDate}\n${uiState.tempPlanInput}")
                             viewModel.tempPlans("")
                         },
-                        enabled = uiState.tempPlanInput.isNotBlank() && !uiState.isPlanEditing,
+                        enabled = isAddEnabled
                     ) {
                         Text(text = stringResource(R.string.button_add_plans))
                     }
                     Spacer(modifier = Modifier.size(32.dp))
                     if (uiState.isPlanEditing) {
-                        ElevatedButton(
+                        val isFinishEnabled = uiState.tempPlanInput.isNotBlank()
+
+                        AnimatedElevatedButton(
                             onClick = {
                                 viewModel.endEditingPlans()
                                 if (uiState.isSignedIn && viewModel.isOnline())
                                     viewModel.sendPlansToDatabase(uiState.tempPlanInput)
                                 viewModel.tempPlans("")
                             },
-                            enabled = uiState.tempPlanInput.isNotBlank(),
-                            modifier = Modifier
+                            enabled = isFinishEnabled
                         ) {
                             Text(stringResource(R.string.button_finish_editing))
                         }
@@ -454,6 +476,48 @@ fun DailyPlansScreen(
 }
 
 @Composable
+fun PlansUnit(isDone: Boolean, text: String, onClick: () -> Unit) {
+    val color by animateColorAsState(
+        if (isDone) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+        else MaterialTheme.colorScheme.onSurfaceVariant,
+        label = "color"
+    )
+    val strikethrough by animateFloatAsState(if (isDone) 1f else 0f, label = "strikethrough")
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+    ) {
+        Checkbox(
+            checked = isDone,
+            onCheckedChange = { onClick() }
+        )
+        Text(
+            text,
+            color = color,
+            modifier = Modifier.drawWithContent {
+                drawContent()
+
+                if (strikethrough > 0f) {
+                    val width = 1.5.dp.toPx()
+                    val y = size.height / 2f + 1.dp.toPx()
+
+                    drawLine(
+                        color = color,
+                        start = Offset(0f, y),
+                        end = Offset(size.width * strikethrough, y),
+                        strokeWidth = width
+                    )
+                }
+            }
+        )
+    }
+}
+
+@SuppressLint("NonObservableLocale")
+@Composable
 fun TopBar(
     uiState: PlansScreenUiState,
     drawerState: DrawerState,
@@ -463,11 +527,12 @@ fun TopBar(
 ) {
     var day: String
     try {
+        val pattern = android.text.format.DateFormat.getBestDateTimePattern(Locale.getDefault(), "dMMMM")
         day = LocalDate.parse(uiState.selectedPickerDate,
             DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault()))
-            .format(DateTimeFormatter.ofPattern("d MMMM", Locale.getDefault()))
+            .format(DateTimeFormatter.ofPattern(pattern, Locale.getDefault()))
     }
-    catch (_: DateTimeParseException) {
+    catch (_: Exception) {
         day = uiState.selectedPickerDate
     }
 

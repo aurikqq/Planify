@@ -16,7 +16,6 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,16 +27,12 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.InlineTextContent
-import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AcUnit
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material3.AlertDialog
@@ -45,9 +40,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DrawerState
-import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SelectableDates
@@ -65,13 +58,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.Placeholder
-import androidx.compose.ui.text.PlaceholderVerticalAlign
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -88,9 +77,16 @@ import com.aurikqq.planify.Repository
 import com.aurikqq.planify.RequestNotificationsPermission
 import com.aurikqq.planify.TabsBar
 import com.aurikqq.planify.checkUpdates
+import com.aurikqq.planify.components.AnimatedElevatedButton
+import com.aurikqq.planify.components.AnimatedTextButton
+import com.aurikqq.planify.components.AnimatedTonalButton
 import com.aurikqq.planify.downloadApk
 import com.aurikqq.planify.installApk
 import com.aurikqq.planify.isTablet
+import com.aurikqq.planify.viewmodels.HistoryScreenViewModel
+import com.aurikqq.planify.viewmodels.HistoryScreenViewModelFactory
+import com.aurikqq.planify.viewmodels.NotesScreenViewModel
+import com.aurikqq.planify.viewmodels.NotesScreenViewModelFactory
 import com.aurikqq.planify.viewmodels.PlansScreenViewModel
 import com.aurikqq.planify.viewmodels.PlansScreenViewModelFactory
 import kotlinx.coroutines.CoroutineScope
@@ -113,7 +109,7 @@ fun MainScreen(
     drawerState: DrawerState,
     scope: CoroutineScope,
     modifier: Modifier = Modifier,
-    setDrawerContent: (@Composable () -> Unit) -> Unit,
+    setDrawerContent: @Composable (@Composable () -> Unit) -> Unit,
     //onPlansRendered: (Rect) -> Unit
 ) {
     var showUpdateDialog by remember { mutableStateOf(false) }
@@ -143,6 +139,28 @@ fun MainScreen(
         }
     )
 
+    val notesViewModel: NotesScreenViewModel = viewModel(
+        factory = NotesScreenViewModelFactory(Repository(context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE), context))
+    )
+    val historyViewModel: HistoryScreenViewModel = viewModel(
+        factory = HistoryScreenViewModelFactory(Repository(context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE), context))
+    )
+
+    LaunchedEffect(uiState.isSignedIn) {
+        if (uiState.isSignedIn) {
+            val repository = Repository(context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE), context)
+            repository.observeConnectivity().collect { isOnline ->
+                if (isOnline) {
+                    viewModel.getPlansFromDatabase()
+                    notesViewModel.getNotesFromDatabase()
+                    historyViewModel.getPlansFromDatabase()
+                } else {
+                    Toast.makeText(context, "Нет подключения к интернету. Синхронизация невозможна.", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
     RequestNotificationsPermission()
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -161,11 +179,11 @@ fun MainScreen(
         }
     }
 
-    LaunchedEffect(uiState.days) {
-        setDrawerContent {
-            DrawerContent(uiState, viewModel, drawerState, scope)
-        }
-    }
+//    LaunchedEffect(uiState.days) {
+//        setDrawerContent {
+//            DrawerContent(uiState, viewModel, drawerState, scope)
+//        }
+//    }
 
     if (showUpdateDialog) {
         UpdateDialog {
@@ -195,7 +213,11 @@ fun MainScreen(
         DatePickerDialog(
             onDismissRequest = { viewModel.hideDatePicker() },
             confirmButton = {
-                ElevatedButton(
+                val isEnabled = if (uiState.days.isNotEmpty()) { !chosenDates.any {
+                    LocalDate.parse(it, DateTimeFormatter.ofPattern("dd_MM_yyyy", LocalLocale.current.platformLocale)) == selectedDate } }
+                    else true
+
+                AnimatedElevatedButton(
                     onClick = {
                         datePickerState.selectedDateMillis?.let { millis ->
                             val date = Instant.ofEpochMilli(millis)
@@ -211,9 +233,7 @@ fun MainScreen(
                             viewModel.hideDatePicker()
                         }
                     },
-                    enabled = if (uiState.days.isNotEmpty()) { !chosenDates.any {
-                        LocalDate.parse(it, DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())) == selectedDate } }
-                        else true
+                    enabled = isEnabled
                 ) {
                     Text("Готово")
                 }
@@ -244,9 +264,15 @@ fun MainScreen(
                     AnimatedContent (
                         targetState = selectedTab,
                         transitionSpec = {
-                            slideInHorizontally() + fadeIn() togetherWith
-                                    slideOutHorizontally() + fadeOut()
-                        }
+                            if (targetState == HISTORY_SCREEN) {
+                                (slideInHorizontally { it } + fadeIn()) togetherWith
+                                        (slideOutHorizontally { -it } + fadeOut())
+                            } else {
+                                (slideInHorizontally { -it } + fadeIn()) togetherWith
+                                        (slideOutHorizontally { it } + fadeOut())
+                            }
+                        },
+                        label = "MainContentTransition"
                     ) { screen ->
                         when (screen) {
                             in listOf(PLANS_SCREEN, NOTES_SCREEN) -> {
@@ -316,9 +342,11 @@ fun MainScreen(
                     Text("Добавить день")
                 }
 
-                TextButton(
+                val isEditListEnabled = uiState.days.isNotEmpty()
+
+                AnimatedTextButton(
                     onClick = { viewModel.setIsDaysListEditing(!uiState.isDaysListEditing) },
-                    enabled = uiState.days.isNotEmpty()
+                    enabled = isEditListEnabled
                 ) {
                     Icon(
                         Icons.Default.EditCalendar,
@@ -341,9 +369,15 @@ fun MainScreen(
                     AnimatedContent (
                         targetState = selectedTab,
                         transitionSpec = {
-                            slideInHorizontally() + fadeIn() togetherWith
-                                    slideOutHorizontally() + fadeOut()
-                        }
+                            if (targetState == HISTORY_SCREEN) {
+                                (slideInHorizontally { it } + fadeIn()) togetherWith
+                                        (slideOutHorizontally { -it } + fadeOut())
+                            } else {
+                                (slideInHorizontally { -it } + fadeIn()) togetherWith
+                                        (slideOutHorizontally { it } + fadeOut())
+                            }
+                        },
+                        label = "MainContentTransition"
                     ) { screen ->
                         when (screen) {
                             in listOf(PLANS_SCREEN, NOTES_SCREEN) -> {
@@ -435,9 +469,11 @@ fun DrawerContent(
                 Text("Добавить день")
             }
 
-            TextButton(
+            val isEditListEnabled = uiState.days.isNotEmpty()
+
+            AnimatedTextButton(
                 onClick = { viewModel.setIsDaysListEditing(!uiState.isDaysListEditing) },
-                enabled = uiState.days.isNotEmpty()
+                enabled = isEditListEnabled
             ) {
                 Icon(
                     Icons.Default.EditCalendar,
@@ -513,7 +549,7 @@ fun UpdateDialog(onClickOrDismiss: () -> Unit) {
             }
         },
         confirmButton = {
-            TextButton(onClick = onClickOrDismiss) {
+            AnimatedTextButton(onClick = onClickOrDismiss) {
                 Text("Понял")
             }
         }
@@ -542,7 +578,7 @@ fun UpdateLabel() {
 
     if (isUpdateAvailable) {
         Column {
-            FilledTonalButton(
+            AnimatedTonalButton(
                 onClick = {
                     if (dlProgress < 100f && !isDownloading) {
                         isDownloading = true

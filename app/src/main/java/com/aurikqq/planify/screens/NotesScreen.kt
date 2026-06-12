@@ -38,6 +38,7 @@ import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedButton
@@ -54,6 +55,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,6 +77,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.aurikqq.planify.PREFERENCES_NAME
 import com.aurikqq.planify.R
 import com.aurikqq.planify.Repository
+import com.aurikqq.planify.components.AnimatedButton
+import com.aurikqq.planify.components.AnimatedElevatedButton
+import com.aurikqq.planify.components.AnimatedTonalButton
 import com.aurikqq.planify.ui.theme.PlanifyTheme
 import com.aurikqq.planify.viewmodels.Note
 import com.aurikqq.planify.viewmodels.NotesScreenViewModel
@@ -109,12 +114,6 @@ fun NotesScreen(modifier: Modifier = Modifier) {
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    if (uiState.isSignedIn && viewModel.isOnline()) {
-        LaunchedEffect(Unit) {
-            viewModel.getNotesFromDatabase()
-        }
-    }
-
     val height by animateDpAsState(if (uiState.notes.isNotEmpty()) 24.dp else 48.dp, tween())
     LazyColumn(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -130,17 +129,19 @@ fun NotesScreen(modifier: Modifier = Modifier) {
             //.snowfall()
     ) {
         if (uiState.notes.isNotEmpty()) {
-            items(uiState.notes) { note ->
+            items(uiState.notes, key = { it.id }) { note ->
                 NoteCard(note, viewModel, uiState,
                     keyboardController, focusRequester, Modifier)
             }
 
             item {
                 if (!uiState.isAddingNote) {
+                    val isEnabled = !uiState.isEditing
+
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Button(
+                        AnimatedButton(
                             onClick = { viewModel.isAddingNote(true) },
-                            enabled = !uiState.isEditing
+                            enabled = isEnabled
                         ) {
                             Text("Добавить запись")
                         }
@@ -159,12 +160,14 @@ fun NotesScreen(modifier: Modifier = Modifier) {
                                 Text("Отмени")
                             }
 
-                            Button(
+                            val isSetEnabled = uiState.tempNote.isNotBlank() && uiState.tempNoteTitle.isNotBlank()
+
+                            AnimatedButton(
                                 onClick = {
                                     viewModel.setNote()
                                     viewModel.isAddingNote(false)
                                 },
-                                enabled = uiState.tempNote.isNotBlank() && uiState.tempNoteTitle.isNotBlank()
+                                enabled = isSetEnabled
                             ) {
                                 Text(stringResource(R.string.button_add_plans))
                             }
@@ -197,9 +200,11 @@ fun NotesScreen(modifier: Modifier = Modifier) {
                 Spacer(modifier = Modifier.size(24.dp))
             }
             item {
-                Button(
+                val isEnabled = uiState.tempNote.isNotBlank() && uiState.tempNoteTitle.isNotBlank()
+
+                AnimatedButton(
                     onClick = { viewModel.setNote() },
-                    enabled = uiState.tempNote.isNotBlank() && uiState.tempNoteTitle.isNotBlank(),
+                    enabled = isEnabled
                 ) {
                     Text(stringResource(R.string.button_set_plans))
                 }
@@ -232,8 +237,8 @@ fun NoteCard(
                 .alpha(alpha)
                 .padding(8.dp)
         ) {
-            var isEditing by remember { mutableStateOf(false) } // human, i remember you're genocides
-            var isExpanded by remember { mutableStateOf(note.isExpanded) }
+            var isEditing by remember { mutableStateOf(false) }
+            var isExpanded by rememberSaveable(note.id) { mutableStateOf(note.isExpanded) }
             val deg by animateFloatAsState(if (isExpanded) 180f else 0f)
 
             Column(modifier = Modifier.padding(16.dp)) {
@@ -322,47 +327,32 @@ fun NoteCard(
                     if (!isEditing) {
                         Row {
                             if (isExpanded) {
+                                val isChangeEnabled = !uiState.isEditing && !uiState.isAddingNote
                                 if (isSystemInDarkTheme()) {
-                                    FilledTonalButton(
+                                    AnimatedTonalButton(
                                         onClick = {
                                             isEditing = true
                                             viewModel.isEditing(true)
                                         },
-                                        enabled = !uiState.isEditing && !uiState.isAddingNote
+                                        enabled = isChangeEnabled
                                     ) {
                                         Text("Поменять")
                                     }
                                 }
                                 else {
-                                    ElevatedButton(
+                                    AnimatedElevatedButton(
                                         onClick = {
                                             isEditing = true
                                             viewModel.isEditing(true)
                                         },
-                                        enabled = !uiState.isEditing && !uiState.isAddingNote
+                                        enabled = isChangeEnabled,
+                                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                        contentColor = MaterialTheme.colorScheme.primary
                                     ) {
                                         Text("Поменять")
                                     }
                                 }
                             }
-
-//                            IconButton(
-//                                onClick = {
-//
-//                                },
-//                                shape = RoundedCornerShape(12.dp)
-//                            ) {
-//                                Icon(Icons.Default.ArrowUpward, null)
-//                            }
-//
-//                            IconButton(
-//                                onClick = {
-//
-//                                },
-//                                shape = RoundedCornerShape(12.dp)
-//                            ) {
-//                                Icon(Icons.Default.ArrowDownward, null)
-//                            }
                         }
 
                         IconButton(
@@ -376,7 +366,7 @@ fun NoteCard(
                         }
                     } else {
                         if (isSystemInDarkTheme()) {
-                            ElevatedButton(
+                            AnimatedElevatedButton(
                                 onClick = {
                                     isEditing = false
                                     viewModel.setNote(note)
@@ -389,7 +379,7 @@ fun NoteCard(
                             }
                         }
                         else {
-                            Button(
+                            AnimatedButton(
                                 onClick = {
                                     isEditing = false
                                     viewModel.setNote(note)

@@ -64,7 +64,8 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
                     plansNotificationsEnabled = repo.getPlansNotificationsEnabled(),
                     resetNotificationsEnabled = repo.getResetNotificationsEnabled(),
                     isSignedIn = repo.getIsSignedIn(),
-                    email = repo.getEmail()
+                    email = repo.getEmail(),
+                    plansPrefix = repo.getPlansPrefix()
                 )
             }
         }
@@ -201,8 +202,14 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
     fun removeDay(day: Pair<String, String>, removePlansForCurrentDate: Boolean = true) {
         val currentDaysList = _uiState.value.days.toMutableList()
         currentDaysList.remove(day)
-        if (removePlansForCurrentDate)
+        if (removePlansForCurrentDate) {
+            val now = LocalDate.now()
+            val formattedDate = LocalDate.parse(day.second, DateTimeFormatter.ofPattern("dd_MM_yyyy"))
+            if (now.isAfter(formattedDate) || now.isEqual(formattedDate)) {
+                repo.savePlansToHistoryDatabase(day.second, day.first)
+            }
             repo.removePlansForDate(day.second)
+        }
         repo.saveDaysList(currentDaysList)
 
         _uiState.update { it.copy(days = currentDaysList.sortedBy { date ->
@@ -229,6 +236,14 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
     }
 
     fun sendPlansToDatabase(plans: String) {
+        val selectedDate = _uiState.value.selectedPickerDate
+        val now = LocalDate.now()
+        val formattedDate = LocalDate.parse(selectedDate, DateTimeFormatter.ofPattern("dd_MM_yyyy"))
+
+        if (now.isAfter(formattedDate) || now.isEqual(formattedDate)) {
+            repo.savePlansToHistoryDatabase(selectedDate, plans)
+        }
+
         val plan = hashMapOf(
             "plans" to plans,
         )
@@ -236,7 +251,7 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
         db.collection(_uiState.value.email)
             .document("plans")
             .collection("plans_collection")
-            .document(_uiState.value.selectedPickerDate)
+            .document(selectedDate)
             .set(plan)
             .addOnSuccessListener { planRef ->
                 Log.d("Plans Sync", "Plans added: $planRef")
@@ -279,6 +294,12 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
                         plan.get("plans").toString(),
                         plan.id
                     )
+                }.sortedBy { date ->
+                    try {
+                        LocalDate.parse(date.second, DateTimeFormatter.ofPattern("dd_MM_yyyy"))
+                    } catch (e: Exception) {
+                        LocalDate.MIN
+                    }
                 }
                 Log.d("Plans Sync", "Imported plans from DB")
 
@@ -292,6 +313,32 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
             .addOnFailureListener { e ->
                 Log.w("Plans Sync", "Error adding plans", e)
             }
+    }
+
+    fun togglePlanCompletion(index: Int) {
+        val selectedDate = _uiState.value.selectedPickerDate
+        val currentPlans = _uiState.value.plansForSelectedDate
+
+        val lines = currentPlans.lines().toMutableList()
+        if (index in lines.indices) {
+            val line = lines[index]
+            if (line.endsWith('*')) {
+                lines[index] = line.removeSuffix("*")
+            } else {
+                lines[index] = "$line*"
+            }
+
+            val newPlans = lines.joinToString("\n")
+            repo.savePlansForDate(selectedDate, newPlans)
+
+            _uiState.update {
+                it.copy(plansForSelectedDate = newPlans)
+            }
+
+            if (_uiState.value.isSignedIn && isOnline()) {
+                sendPlansToDatabase(newPlans)
+            }
+        }
     }
 
     fun isOnline() : Boolean {

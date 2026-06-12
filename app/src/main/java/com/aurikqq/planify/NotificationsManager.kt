@@ -58,37 +58,40 @@ class TimeReceiver : BroadcastReceiver() {
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
-        if (intent?.action == Intent.ACTION_BOOT_COMPLETED) {
-            val calendar = Calendar.getInstance()
+        if (intent?.action == Intent.ACTION_BOOT_COMPLETED && context != null) {
+            val sharedPreferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
+            val repo = Repository(sharedPreferences!!, context)
 
-            val time = Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
+            if (repo.getPlansNotificationsEnabled()) {
+                AlarmScheduler.scheduleAlarm(context)
+                AlarmScheduler.scheduleRepeatingAlarm(context)
             }
 
-            if (calendar.after(time)) {
-                showPlansResetNotification(context!!)
+            if (repo.getResetNotificationsEnabled()) {
+                AlarmScheduler.schedulePlansReset(context)
             }
-
-            AlarmScheduler.scheduleAlarm(context!!)
-            AlarmScheduler.scheduleRepeatingAlarm(context)
         }
     }
 }
 
 class ResetReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
+        if (context == null) return
         try {
-            val sharedPreferences = context?.getSharedPreferences(
+            val sharedPreferences = context.getSharedPreferences(
                 PREFERENCES_NAME,
                 Context.MODE_PRIVATE
             )
-            sharedPreferences?.edit {
+            val repo = Repository(sharedPreferences!!, context)
+            if (repo.getResetNotificationsEnabled()) {
+                showPlansResetNotification(context)
+            }
+
+            sharedPreferences.edit {
                 remove(KEY_PLANS)
                 putBoolean(KEY_HAVE_PLANS, false)
             }
-            AlarmScheduler.cancelNotifications(context as Context)
+            AlarmScheduler.cancelNotifications(context)
         }
         catch (e: Exception) {
             Log.d("PlansReset", "Error: $e")

@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.aurikqq.planify.Repository
-import com.aurikqq.planify.TextWidgetDataTypes
 import com.aurikqq.planify.screens.NotesScreenUiState
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
@@ -22,7 +21,8 @@ data class Note(
     val id: String = "",
     var title: String = "",
     var text: String = "",
-    var isExpanded: Boolean = true
+    var isExpanded: Boolean = true,
+    val timestamp: Long = System.currentTimeMillis()
 )
 
 @Suppress("UNCHECKED_CAST")
@@ -50,6 +50,8 @@ class NotesScreenViewModel(private val repo: Repository) : ViewModel() {
     private fun loadInitialData() {
         viewModelScope.launch {
             val notes = repo.getNotesList()
+                .sortedWith(compareByDescending<Note> { it.timestamp }.thenByDescending { it.id })
+                .toMutableList()
 
             _uiState.update {
                 it.copy (
@@ -121,12 +123,14 @@ class NotesScreenViewModel(private val repo: Repository) : ViewModel() {
     }
 
     fun setNote(note: Note = Note()) {
-        val note = if(note.id.isBlank()) Note(UUID.randomUUID().toString(), _uiState.value.tempNoteTitle, _uiState.value.tempNote) else note
+        val note = if(note.id.isBlank()) Note(UUID.randomUUID().toString(), _uiState.value.tempNoteTitle, _uiState.value.tempNote, timestamp = System.currentTimeMillis()) else note
 
         if (_uiState.value.isSignedIn && isOnline())
             sendNoteToDatabase(note)
         repo.saveNote(note)
         val newNotesList = repo.getNotesList()
+            .sortedWith(compareByDescending<Note> { it.timestamp }.thenByDescending { it.id })
+            .toMutableList()
 
         _uiState.update {
             it.copy(
@@ -144,6 +148,8 @@ class NotesScreenViewModel(private val repo: Repository) : ViewModel() {
             removeNoteFromDatabase(note)
         repo.removeNote(note)
         val newNotesList = repo.getNotesList()
+            .sortedWith(compareByDescending<Note> { it.timestamp }.thenByDescending { it.id })
+            .toMutableList()
 
         _uiState.update {
             it.copy(
@@ -160,6 +166,7 @@ class NotesScreenViewModel(private val repo: Repository) : ViewModel() {
                 "title" to note.title,
                 "text" to note.text,
                 "is_expanded" to note.isExpanded,
+                "timestamp" to note.timestamp
             )
 
             db.collection(_uiState.value.email)
@@ -195,8 +202,10 @@ class NotesScreenViewModel(private val repo: Repository) : ViewModel() {
                             note.get("title").toString(),
                             note.get("text").toString(),
                             note.get("is_expanded") as Boolean,
+                            note.get("timestamp") as? Long ?: 0L
                         )
-                    }.toMutableList()
+                    }.sortedWith(compareByDescending<Note> { it.timestamp }.thenByDescending { it.id })
+                        .toMutableList()
                     Log.d("Plans Sync", "Imported notes from DB")
 
                     _uiState.update {

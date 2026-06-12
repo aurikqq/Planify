@@ -27,6 +27,7 @@ suspend fun getLatestVersion(): String? = withContext(Dispatchers.IO) {
     val body = response.body.string()
 
     val json = JSONObject(body)
+    println(json)
     json.getString("tag_name")
 }
 
