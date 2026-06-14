@@ -1,3 +1,4 @@
+/*
 package com.aurikqq.planify.widgets.textwidget
 
 import android.content.Context
@@ -24,6 +25,7 @@ import androidx.glance.state.GlanceStateDefinition
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.Text
 import com.aurikqq.planify.PREFERENCES_NAME
+import com.aurikqq.planify.R
 import com.aurikqq.planify.Repository
 
 class WidgetReceiver: GlanceAppWidgetReceiver() {
@@ -85,9 +87,27 @@ class Widget : GlanceAppWidget() {
                 }
             }
             else {
-                Button(text = "Нажми для настройки", onClick = { context.startActivity(intent) })
+                Button(text = context.getString(R.string.button_widget_setup), onClick = { context.startActivity(intent) })
             }
 
         }
     }
 }
+
+
+
+
+there was a wigdet_info.xml file
+
+<?xml version="1.0" encoding="utf-8"?>
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:initialLayout="@layout/glance_default_loading_layout"
+    android:minWidth="120dp"
+    android:minHeight="180dp"
+    android:minResizeWidth="60dp"
+    android:minResizeHeight="60dp"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen" >
+</appwidget-provider>
+
+*/

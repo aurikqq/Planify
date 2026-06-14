@@ -23,8 +23,8 @@ fun AnimatedButton(
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     containerColor: Color = MaterialTheme.colorScheme.primary,
     contentColor: Color = MaterialTheme.colorScheme.onPrimary,
-    disabledContainerColor: Color = MaterialTheme.colorScheme.surfaceVariant,
-    disabledContentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    disabledContainerColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+    disabledContentColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
     content: @Composable RowScope.() -> Unit
 ) {
     val container by animateColorAsState(if (enabled) containerColor else disabledContainerColor, label = "buttonContainer")
@@ -53,10 +53,10 @@ fun AnimatedElevatedButton(
     enabled: Boolean = true,
     shape: Shape = ButtonDefaults.elevatedShape,
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
-    containerColor: Color = MaterialTheme.colorScheme.primary,
-    contentColor: Color = MaterialTheme.colorScheme.onPrimary,
-    disabledContainerColor: Color = MaterialTheme.colorScheme.surfaceVariant,
-    disabledContentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    containerColor: Color = MaterialTheme.colorScheme.surface,
+    contentColor: Color = MaterialTheme.colorScheme.primary,
+    disabledContainerColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+    disabledContentColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
     content: @Composable RowScope.() -> Unit
 ) {
     val container by animateColorAsState(if (enabled) containerColor else disabledContainerColor, label = "elevatedButtonContainer")
@@ -87,8 +87,8 @@ fun AnimatedTonalButton(
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,
     containerColor: Color = MaterialTheme.colorScheme.secondaryContainer,
     contentColor: Color = MaterialTheme.colorScheme.onSecondaryContainer,
-    disabledContainerColor: Color = MaterialTheme.colorScheme.surfaceVariant,
-    disabledContentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    disabledContainerColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+    disabledContentColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
     content: @Composable RowScope.() -> Unit
 ) {
     val container by animateColorAsState(if (enabled) containerColor else disabledContainerColor, label = "tonalButtonContainer")
@@ -118,7 +118,7 @@ fun AnimatedTextButton(
     shape: Shape = ButtonDefaults.textShape,
     contentPadding: PaddingValues = ButtonDefaults.TextButtonContentPadding,
     contentColor: Color = MaterialTheme.colorScheme.primary,
-    disabledContentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
+    disabledContentColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
     content: @Composable RowScope.() -> Unit
 ) {
     val contentCol by animateColorAsState(if (enabled) contentColor else disabledContentColor, label = "textButtonContent")

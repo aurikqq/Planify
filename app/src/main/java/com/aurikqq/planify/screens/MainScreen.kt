@@ -61,6 +61,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -109,7 +110,7 @@ fun MainScreen(
     drawerState: DrawerState,
     scope: CoroutineScope,
     modifier: Modifier = Modifier,
-    setDrawerContent: @Composable (@Composable () -> Unit) -> Unit,
+    //setDrawerContent: @Composable (@Composable () -> Unit) -> Unit,
     //onPlansRendered: (Rect) -> Unit
 ) {
     var showUpdateDialog by remember { mutableStateOf(false) }
@@ -155,23 +156,12 @@ fun MainScreen(
                     notesViewModel.getNotesFromDatabase()
                     historyViewModel.getPlansFromDatabase()
                 } else {
-                    Toast.makeText(context, "Нет подключения к интернету. Синхронизация невозможна.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, context.getString(R.string.toast_sync_failed_no_internet), Toast.LENGTH_LONG).show()
                 }
             }
         }
     }
 
-    RequestNotificationsPermission()
-
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        val alarmManager = ContextCompat.getSystemService(context, AlarmManager::class.java)
-        if (alarmManager?.canScheduleExactAlarms() == false) {
-            Intent().also { intent ->
-                intent.action = Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM
-                context.startActivity(intent)
-            }
-        }
-    }
 
     LaunchedEffect(Unit) {
         if (!uiState.isUpdatePopupShown) {
@@ -235,7 +225,7 @@ fun MainScreen(
                     },
                     enabled = isEnabled
                 ) {
-                    Text("Готово")
+                    Text(stringResource(R.string.button_done))
                 }
             },
 
@@ -243,7 +233,7 @@ fun MainScreen(
                 TextButton(
                     onClick = { viewModel.hideDatePicker() }
                 ) {
-                    Text("Отмена")
+                    Text(stringResource(R.string.button_cancel))
                 }
             }
         ) {
@@ -339,7 +329,7 @@ fun MainScreen(
                         null,
                     )
                     Spacer(Modifier.size(8.dp))
-                    Text("Добавить день")
+                    Text(stringResource(R.string.button_add_day))
                 }
 
                 val isEditListEnabled = uiState.days.isNotEmpty()
@@ -353,7 +343,7 @@ fun MainScreen(
                         null,
                     )
                     Spacer(Modifier.size(8.dp))
-                    Text("Изменить список")
+                    Text(stringResource(R.string.button_edit_list))
                 }
             }
 
@@ -419,13 +409,6 @@ fun DrawerContent(
                 .padding(start = 16.dp, top = 8.dp, bottom = 16.dp)
                 .size(256.dp, 32.dp)
         ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_launcher_monochrome),
-                contentDescription = null,
-                modifier = Modifier.size(28.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.size(8.dp))
             Text(
                 text = "Planify",
                 fontSize = 22.sp,
@@ -466,7 +449,7 @@ fun DrawerContent(
                     null,
                 )
                 Spacer(Modifier.size(8.dp))
-                Text("Добавить день")
+                Text(stringResource(R.string.button_add_day))
             }
 
             val isEditListEnabled = uiState.days.isNotEmpty()
@@ -480,7 +463,7 @@ fun DrawerContent(
                     null,
                 )
                 Spacer(Modifier.size(8.dp))
-                Text("Изменить список")
+                Text(stringResource(R.string.button_edit_list))
             }
         }
     }
@@ -533,7 +516,7 @@ fun UpdateDialog(onClickOrDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onClickOrDismiss,
         title = {
-            Text("\uD83C\uDF84 Что поменялось в этой версии:")
+            Text(stringResource(R.string.changelog_dialog_title))
         },
         text = {
             LazyColumn {
@@ -542,7 +525,7 @@ fun UpdateDialog(onClickOrDismiss: () -> Unit) {
                 }
                 item {
                     AsyncImage(
-                        model = "https://i.pinimg.com/736x/26/90/2d/26902dc92d66500f3bab3f602d3fe4f2.jpg",
+                        model = "https://i.pinimg.com/736x/ce/93/27/ce93279ca0ac3e19369d305fca0c8175.jpg",
                         contentDescription = null
                     )
                 }
@@ -550,7 +533,7 @@ fun UpdateDialog(onClickOrDismiss: () -> Unit) {
         },
         confirmButton = {
             AnimatedTextButton(onClick = onClickOrDismiss) {
-                Text("Понял")
+                Text(stringResource(R.string.button_got_it))
             }
         }
     )
@@ -586,7 +569,7 @@ fun UpdateLabel() {
                             apk = downloadApk(context) { dlProgress = it.toInt() }
                             withContext(Dispatchers.Main) {
                                 isDownloading = false
-                                Toast.makeText(context, "Обновление скачано!", Toast.LENGTH_LONG)
+                                Toast.makeText(context, context.getString(R.string.toast_update_downloaded), Toast.LENGTH_LONG)
                                     .show()
                             }
                         }
@@ -611,7 +594,7 @@ fun UpdateLabel() {
                     exit = fadeOut() + shrinkVertically(shrinkTowards = Alignment.Bottom)
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Text("Скачать обновление")
+                        Text(stringResource(R.string.button_download_update))
                     }
                 }
                 AnimatedVisibility(
@@ -619,7 +602,7 @@ fun UpdateLabel() {
                     enter = fadeIn() + expandVertically(expandFrom = Alignment.Top),
                 ) {
                     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Text("Нажми, чтобы обновить Planify!")
+                        Text(stringResource(R.string.button_click_to_update))
                     }
                 }
                 AnimatedVisibility(
@@ -633,7 +616,7 @@ fun UpdateLabel() {
                         modifier = Modifier.fillMaxSize()
                     ) {
                         Text(
-                            "Скачивание...",
+                            stringResource(R.string.label_downloading),
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                         Spacer(modifier = Modifier.size(32.dp))

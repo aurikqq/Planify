@@ -14,8 +14,10 @@ import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -37,6 +39,19 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
 
     private val _user = MutableStateFlow(User())
     val user: StateFlow<User> = _user.asStateFlow()
+
+    private val _plansUpdatedFlow = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val plansUpdatedFlow = _plansUpdatedFlow.asSharedFlow()
+
+    private val preferenceChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == PLANS_PREFIX || key == KEY_DAILY_PLANS_HISTORY || key?.startsWith(KEY_PLANS) == true) {
+            _plansUpdatedFlow.tryEmit(Unit)
+        }
+    }
+
+    init {
+        sharedPreferences.registerOnSharedPreferenceChangeListener(preferenceChangeListener)
+    }
 
     fun setUserEmail(email: String) {
         _user.update {
@@ -452,6 +467,7 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
         awaitClose { connectivityManager.unregisterNetworkCallback(callback) }
     }.distinctUntilChanged()
 
+/*
     fun getTextWidgetText() : String {
         return sharedPreferences.getString(TEXT_WIDGET_TEXT, "") ?: ""
     }
@@ -476,6 +492,7 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
             putString(TEXT_WIDGET_DATA, data)
         }
     }
+*/
 
     fun setPlansPrefix(prefix: String) {
         sharedPreferences.edit {
@@ -500,9 +517,13 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
 
         fun updatePlans(plans: String): String {
             return plans.lines().joinToString("\n") { line ->
-                if (line.trimStart().startsWith(oldPrefix)) {
+                val trimmed = line.trimStart()
+                if (trimmed.startsWith("$oldPrefix*")) {
                     val leadingSpaces = line.takeWhile { it.isWhitespace() }
-                    leadingSpaces + newPrefix + line.trimStart().substring(oldPrefix.length)
+                    leadingSpaces + newPrefix + "*" + trimmed.substring(oldPrefix.length + 1)
+                } else if (trimmed.startsWith(oldPrefix)) {
+                    val leadingSpaces = line.takeWhile { it.isWhitespace() }
+                    leadingSpaces + newPrefix + trimmed.substring(oldPrefix.length)
                 } else {
                     line
                 }

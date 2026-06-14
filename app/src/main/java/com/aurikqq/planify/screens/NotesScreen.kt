@@ -143,7 +143,7 @@ fun NotesScreen(modifier: Modifier = Modifier) {
                             onClick = { viewModel.isAddingNote(true) },
                             enabled = isEnabled
                         ) {
-                            Text("Добавить запись")
+                            Text(stringResource(R.string.label_add_note))
                         }
                     }
                 }
@@ -157,7 +157,7 @@ fun NotesScreen(modifier: Modifier = Modifier) {
                             ElevatedButton(
                                 onClick = { viewModel.isAddingNote(false) }
                             ) {
-                                Text("Отмени")
+                                Text(stringResource(R.string.button_cancel))
                             }
 
                             val isSetEnabled = uiState.tempNote.isNotBlank() && uiState.tempNoteTitle.isNotBlank()
@@ -184,10 +184,7 @@ fun NotesScreen(modifier: Modifier = Modifier) {
                 )
                 Spacer(modifier = Modifier.size(8.dp))
                 Text(
-                    "Записи - раздел, где ты можешь оставить что угодно, " +
-                            "и сохранённое здесь не удалится.\n" +
-                            "Тут может быть то, что тебе надо запомнить или сделать не сегодня.\n\n" +
-                            "Также, можно делать несколько отдельных записей.\n",
+                    stringResource(R.string.notes_empty_message),
                     textAlign = TextAlign.Center,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
                     modifier = Modifier.padding(start = 8.dp)
@@ -336,7 +333,7 @@ fun NoteCard(
                                         },
                                         enabled = isChangeEnabled
                                     ) {
-                                        Text("Поменять")
+                                        Text(stringResource(R.string.button_change))
                                     }
                                 }
                                 else {
@@ -349,7 +346,7 @@ fun NoteCard(
                                         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                                         contentColor = MaterialTheme.colorScheme.primary
                                     ) {
-                                        Text("Поменять")
+                                        Text(stringResource(R.string.button_change))
                                     }
                                 }
                             }
@@ -372,7 +369,7 @@ fun NoteCard(
                                     viewModel.setNote(note)
                                     viewModel.isEditing(false)
 
-                                    viewModel.updateWidget(note)
+                                    //viewModel.updateWidget(note)
                                 }
                             ) {
                                 Text(stringResource(R.string.button_finish_editing))
@@ -385,7 +382,7 @@ fun NoteCard(
                                     viewModel.setNote(note)
                                     viewModel.isEditing(false)
 
-                                    viewModel.updateWidget(note)
+                                    //viewModel.updateWidget(note)
                                 }
                             ) {
                                 Text(stringResource(R.string.button_finish_editing))
@@ -423,7 +420,7 @@ fun EmptyNoteCard(uiState: NotesScreenUiState, viewModel: NotesScreenViewModel, 
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Medium,
                 ),
-                placeholder = { Text("Как назвать запись?") },
+                placeholder = { Text(stringResource(R.string.hint_note_title)) },
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 modifier = modifier
                     .height(52.dp)
@@ -435,7 +432,7 @@ fun EmptyNoteCard(uiState: NotesScreenUiState, viewModel: NotesScreenViewModel, 
             OutlinedTextField(
                 value = uiState.tempNote,
                 onValueChange = { viewModel.onNoteTextInput(it) },
-                placeholder = { Text("Что стоит запомнить?") },
+                placeholder = { Text(stringResource(R.string.hint_note_text)) },
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 modifier = modifier
                     .defaultMinSize(minHeight = 120.dp)

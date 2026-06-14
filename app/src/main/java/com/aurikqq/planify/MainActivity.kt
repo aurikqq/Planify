@@ -78,6 +78,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -102,8 +103,8 @@ import com.aurikqq.planify.viewmodels.PlansScreenViewModel
 import com.aurikqq.planify.viewmodels.PlansScreenViewModelFactory
 import com.aurikqq.planify.viewmodels.SettingsScreenViewModel
 import com.aurikqq.planify.viewmodels.SettingsScreenViewModelFactory
-import com.aurikqq.planify.widgets.textwidget.Widget
-import com.aurikqq.planify.widgets.textwidget.WidgetReceiver
+//import com.aurikqq.planify.widgets.textwidget.Widget
+//import com.aurikqq.planify.widgets.textwidget.WidgetReceiver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -121,12 +122,12 @@ class MainActivity : ComponentActivity() {
 //                R.style.Theme_App_Starting_Light
 //        )
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-            lifecycleScope.launch(Dispatchers.Default) {
-                //GlanceAppWidgetManager(this@MainActivity)
-                    //.setWidgetPreviews(WidgetReceiver::class)
-            }
-        }
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+//            lifecycleScope.launch(Dispatchers.Default) {
+//                //GlanceAppWidgetManager(this@MainActivity)
+//                    //.setWidgetPreviews(WidgetReceiver::class)
+//            }
+//        }
 
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -138,27 +139,27 @@ class MainActivity : ComponentActivity() {
 
     //val intent = (applicationContext as Activity).intent
 
-    val widgetId = intent?.extras?.getInt(
-        AppWidgetManager.EXTRA_APPWIDGET_ID,
-        AppWidgetManager.INVALID_APPWIDGET_ID
-    ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
+//    val widgetId = intent?.extras?.getInt(
+//        AppWidgetManager.EXTRA_APPWIDGET_ID,
+//        AppWidgetManager.INVALID_APPWIDGET_ID
+//    ) ?: AppWidgetManager.INVALID_APPWIDGET_ID
 
     //////fuck it
-
-    private fun saveTextWidgetState(id: String) = lifecycleScope.launch(Dispatchers.IO) {
-        val repo = Repository(
-            applicationContext.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE),
-            applicationContext
-        )
-        val glanceId = GlanceAppWidgetManager(applicationContext).getGlanceIdBy(widgetId)
-        val note = repo.getNotesList().find { it.id == id } ?: return@launch
-        updateAppWidgetState(applicationContext, glanceId) { prefs ->
-            prefs[Widget().noteId] = id
-            prefs[Widget().noteTitle] = note.title
-            prefs[Widget().noteText] = note.text
-        }
-        Widget().update(applicationContext, glanceId)
-    }
+//
+//    private fun saveTextWidgetState(id: String) = lifecycleScope.launch(Dispatchers.IO) {
+//        val repo = Repository(
+//            applicationContext.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE),
+//            applicationContext
+//        )
+//        val glanceId = GlanceAppWidgetManager(applicationContext).getGlanceIdBy(widgetId)
+//        val note = repo.getNotesList().find { it.id == id } ?: return@launch
+//        updateAppWidgetState(applicationContext, glanceId) { prefs ->
+//            prefs[Widget().noteId] = id
+//            prefs[Widget().noteTitle] = note.title
+//            prefs[Widget().noteText] = note.text
+//        }
+//        Widget().update(applicationContext, glanceId)
+//    }
 }
 
 @Composable
@@ -316,9 +317,9 @@ fun AppActivity() {
                                         drawerState = drawerState,
                                         scope = scope,
                                         modifier = Modifier,
-                                        { drawerContent =
-                                            { DrawerContent(uiState, viewModel, drawerState, scope) }
-                                        },
+//                                        { drawerContent =
+//                                            { DrawerContent(uiState, viewModel, drawerState, scope) }
+//                                        },
                                         //{ plansCardRect = it }
                                     )
                                 }
@@ -404,9 +405,9 @@ fun AppActivity() {
                                         drawerState = drawerState,
                                         scope = scope,
                                         modifier = Modifier,
-                                        { drawerContent =
-                                            { DrawerContent(uiState, viewModel, drawerState, scope) }
-                                        },
+//                                        { drawerContent =
+//                                            { DrawerContent(uiState, viewModel, drawerState, scope) }
+//                                        },
                                         //{ plansCardRect = it }
                                     )
                                 }
@@ -487,7 +488,7 @@ fun BottomBar(navController: NavController) {
                         null
                     )
                 },
-                label = { Text("Планы") }
+                label = { Text(stringResource(R.string.label_plans)) }
             )
             NavigationBarItem(
                 enabled = false,
@@ -501,7 +502,7 @@ fun BottomBar(navController: NavController) {
                         null
                     )
                 },
-                label = { Text("Занятия") }
+                label = { Text(stringResource(R.string.label_activities)) }
             )
             NavigationBarItem(
                 selected = currentRoute == SETTINGS_SCREEN,
@@ -516,7 +517,7 @@ fun BottomBar(navController: NavController) {
                         null
                     )
                 },
-                label = { Text("Настройки") }
+                label = { Text(stringResource(R.string.label_settings)) }
             )
         }
     }
@@ -545,7 +546,7 @@ fun NavRail(navController: NavController) {
                         null
                     )
                 },
-                label = { Text("Планы") }
+                label = { Text(stringResource(R.string.label_plans)) }
             )
             Spacer(modifier = Modifier.size(64.dp))
 
@@ -559,7 +560,7 @@ fun NavRail(navController: NavController) {
                         null
                     )
                 },
-                label = { Text("Занятия") }
+                label = { Text(stringResource(R.string.label_activities)) }
             )
             Spacer(modifier = Modifier.size(64.dp))
 
@@ -576,7 +577,7 @@ fun NavRail(navController: NavController) {
                         null
                     )
                 },
-                label = { Text("Настройки") }
+                label = { Text(stringResource(R.string.label_settings)) }
             )
         }
     }
@@ -637,7 +638,7 @@ fun TabsBar(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Checklist, null)
                             Spacer(modifier = Modifier.size(8.dp))
-                            Text("Дневные")
+                            Text(stringResource(R.string.label_daily))
                         }
                     },
                     modifier = Modifier.clip(RoundedCornerShape(16.dp))
@@ -652,7 +653,7 @@ fun TabsBar(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.EditNote, null)
                             Spacer(modifier = Modifier.size(8.dp))
-                            Text("Записи")
+                            Text(stringResource(R.string.label_notes))
                         }
                     },
                     modifier = Modifier.clip(RoundedCornerShape(16.dp))
@@ -679,10 +680,12 @@ suspend fun checkUpdates(context: Context) : Boolean {
     return result
 }
 
+/*
 enum class TextWidgetDataTypes {
     PLANS,
     NOTE
 }
+*/
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable

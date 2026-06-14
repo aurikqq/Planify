@@ -1,8 +1,16 @@
 package com.aurikqq.planify.screens
 
+import android.Manifest
 import android.annotation.SuppressLint
+import android.app.AlarmManager
 import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import android.provider.Settings
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
@@ -43,6 +51,7 @@ import androidx.compose.material.icons.filled.ArrowBackIosNew
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -77,11 +86,13 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.aurikqq.planify.AlarmScheduler
 import com.aurikqq.planify.R
 import com.aurikqq.planify.components.AnimatedButton
 import com.aurikqq.planify.components.AnimatedElevatedButton
+import com.aurikqq.planify.components.PlansUnit
 import com.aurikqq.planify.createNotificationChannel
 import com.aurikqq.planify.isTablet
 import com.aurikqq.planify.viewmodels.PlansScreenViewModel
@@ -113,7 +124,8 @@ data class PlansScreenUiState(
     val resetNotificationsEnabled: Boolean = true,
     val isSignedIn: Boolean = false,
     val email: String = "null",
-    val plansPrefix: String = ""
+    val plansPrefix: String = "",
+    val isPermissionDialogShown: Boolean = false
 )
 
 @Composable
@@ -207,7 +219,7 @@ fun DaysList(
     ) {
         Row {
             Column {
-                DaysListItem(uiState, "сегодня", uiState.currentDate == uiState.selectedPickerDate,
+                DaysListItem(uiState, stringResource(R.string.label_today), uiState.currentDate == uiState.selectedPickerDate,
                     onClick = { onDateSelected(uiState.currentDate) })
 
                 for (day in uiState.days) {
@@ -232,7 +244,7 @@ fun DaysList(
                             .format(outputFormat)
                     }
                     else {
-                        date = "завтра"
+                        date = stringResource(R.string.label_tomorrow)
                     }
 
                     DaysListItem(uiState, date, selected, uiState.isDaysListEditing,
@@ -263,6 +275,63 @@ fun DailyPlansScreen(
     viewModel: PlansScreenViewModel = viewModel(),
     //onPlansRendered: (Rect) -> Unit
 ) {
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { _ ->
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            if (!alarmManager.canScheduleExactAlarms()) {
+                val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                context.startActivity(intent)
+            }
+        }
+        viewModel.hidePermissionDialog()
+    }
+
+    val checkPermissions = {
+        val hasNotificationPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+        } else true
+
+        val hasAlarmPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            alarmManager.canScheduleExactAlarms()
+        } else true
+
+        hasNotificationPermission && hasAlarmPermission
+    }
+
+    if (uiState.isPermissionDialogShown) {
+        AlertDialog(
+            onDismissRequest = { viewModel.hidePermissionDialog() },
+            title = { Text(stringResource(R.string.permission_dialog_title)) },
+            text = { Text(stringResource(R.string.permission_dialog_text)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+                            if (!alarmManager.canScheduleExactAlarms()) {
+                                val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+                                context.startActivity(intent)
+                            }
+                        }
+                        viewModel.hidePermissionDialog()
+                    }
+                }) {
+                    Text(stringResource(R.string.permission_dialog_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.hidePermissionDialog() }) {
+                    Text(stringResource(R.string.permission_dialog_dismiss))
+                }
+            }
+        )
+    }
+
     val top by animateDpAsState(if (uiState.havePlans) 24.dp else 48.dp, tween())
     val bottomLabels = listOf(
         stringResource(R.string.bottom_text_no_plans_0),
@@ -327,11 +396,12 @@ fun DailyPlansScreen(
                         uiState.plansForSelectedDate.lines().forEachIndexed { index, str ->
                             if (str.isNotBlank()) {
                                 if (str.replace(" ", "").startsWith(uiState.plansPrefix)) {
-                                    val isDone = str.endsWith('*')
+                                    val prefix = uiState.plansPrefix
+                                    val isDone = str.contains("$prefix*")
                                     val cleanText = if (isDone) {
-                                        str.removeSuffix("*").replace(uiState.plansPrefix, "")
+                                        str.replaceFirst("$prefix*", "").trim()
                                     } else {
-                                        str.replace(uiState.plansPrefix, "")
+                                        str.replaceFirst(prefix, "").trim()
                                     }
 
                                     PlansUnit(
@@ -399,16 +469,21 @@ fun DailyPlansScreen(
 
                 AnimatedButton(
                     onClick = {
-                        viewModel.updateAccount()
-                        if (uiState.isSignedIn && viewModel.isOnline()) {
-                            viewModel.sendPlansToDatabase(uiState.tempPlanInput)
-                            Log.d("DB", "Send (${uiState.tempPlanInput})")
+                        if (!checkPermissions()) {
+                            viewModel.showPermissionDialog()
                         }
-                        viewModel.saveNewPlans()
-                        viewModel.tempPlans("")
+                        else {
+                            viewModel.updateAccount()
+                            if (uiState.isSignedIn && viewModel.isOnline()) {
+                                viewModel.sendPlansToDatabase(uiState.tempPlanInput)
+                                Log.d("DB", "Send (${uiState.tempPlanInput})")
+                            }
+                            viewModel.saveNewPlans()
+                            viewModel.tempPlans("")
 
-                        createNotificationChannel(context)
-                        AlarmScheduler.schedulePlansReset(context)
+                            createNotificationChannel(context)
+                            AlarmScheduler.schedulePlansReset(context)
+                        }
                     },
                     enabled = isEnabled
                 ) {
@@ -420,6 +495,11 @@ fun DailyPlansScreen(
 
                     AnimatedElevatedButton(
                         onClick = {
+                            if (!checkPermissions()) {
+                                viewModel.showPermissionDialog()
+                                return@AnimatedElevatedButton
+                            }
+
                             viewModel.addPlans()
                             if (uiState.isSignedIn && viewModel.isOnline())
                                 viewModel.sendPlansToDatabase("${uiState.plansForSelectedDate}\n${uiState.tempPlanInput}")
@@ -435,6 +515,11 @@ fun DailyPlansScreen(
 
                         AnimatedElevatedButton(
                             onClick = {
+                                if (!checkPermissions()) {
+                                    viewModel.showPermissionDialog()
+                                    return@AnimatedElevatedButton
+                                }
+
                                 viewModel.endEditingPlans()
                                 if (uiState.isSignedIn && viewModel.isOnline())
                                     viewModel.sendPlansToDatabase(uiState.tempPlanInput)
@@ -472,47 +557,6 @@ fun DailyPlansScreen(
                     .padding(8.dp)
             )
         }
-    }
-}
-
-@Composable
-fun PlansUnit(isDone: Boolean, text: String, onClick: () -> Unit) {
-    val color by animateColorAsState(
-        if (isDone) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-        else MaterialTheme.colorScheme.onSurfaceVariant,
-        label = "color"
-    )
-    val strikethrough by animateFloatAsState(if (isDone) 1f else 0f, label = "strikethrough")
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-    ) {
-        Checkbox(
-            checked = isDone,
-            onCheckedChange = { onClick() }
-        )
-        Text(
-            text,
-            color = color,
-            modifier = Modifier.drawWithContent {
-                drawContent()
-
-                if (strikethrough > 0f) {
-                    val width = 1.5.dp.toPx()
-                    val y = size.height / 2f + 1.dp.toPx()
-
-                    drawLine(
-                        color = color,
-                        start = Offset(0f, y),
-                        end = Offset(size.width * strikethrough, y),
-                        strokeWidth = width
-                    )
-                }
-            }
-        )
     }
 }
 

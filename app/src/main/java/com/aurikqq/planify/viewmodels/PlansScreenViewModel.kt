@@ -39,6 +39,24 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
 
     init {
         loadInitialData()
+        observeRepositoryChanges()
+    }
+
+    private fun observeRepositoryChanges() {
+        viewModelScope.launch {
+            repo.plansUpdatedFlow.collect {
+                val newPrefix = repo.getPlansPrefix()
+                val newPlans = repo.getPlansForDate(_uiState.value.selectedPickerDate)
+
+                _uiState.update {
+                    it.copy(
+                        plansPrefix = newPrefix,
+                        plansForSelectedDate = newPlans,
+                        tempPlanInput = if (it.isPlanEditing) newPlans else it.tempPlanInput
+                    )
+                }
+            }
+        }
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -181,6 +199,22 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
         }
     }
 
+    fun showPermissionDialog() {
+        _uiState.update {
+            it.copy(
+                isPermissionDialogShown = true
+            )
+        }
+    }
+
+    fun hidePermissionDialog() {
+        _uiState.update {
+            it.copy(
+                isPermissionDialogShown = false
+            )
+        }
+    }
+
     fun getDateFromPicker(date: String) {
         val currentDaysList = _uiState.value.days.toMutableList()
         currentDaysList.add(Pair("", date))
@@ -318,14 +352,15 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
     fun togglePlanCompletion(index: Int) {
         val selectedDate = _uiState.value.selectedPickerDate
         val currentPlans = _uiState.value.plansForSelectedDate
+        val prefix = _uiState.value.plansPrefix
 
         val lines = currentPlans.lines().toMutableList()
         if (index in lines.indices) {
             val line = lines[index]
-            if (line.endsWith('*')) {
-                lines[index] = line.removeSuffix("*")
-            } else {
-                lines[index] = "$line*"
+            if (line.contains("$prefix*")) {
+                lines[index] = line.replaceFirst("$prefix*", prefix)
+            } else if (line.contains(prefix)) {
+                lines[index] = line.replaceFirst(prefix, "$prefix*")
             }
 
             val newPlans = lines.joinToString("\n")

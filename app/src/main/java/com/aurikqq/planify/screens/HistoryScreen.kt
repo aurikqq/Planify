@@ -48,12 +48,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.aurikqq.planify.PREFERENCES_NAME
+import com.aurikqq.planify.R
 import com.aurikqq.planify.Repository
+import com.aurikqq.planify.components.PlansUnit
 import com.aurikqq.planify.snowfall
 import com.aurikqq.planify.viewmodels.HistoryScreenViewModel
 import com.aurikqq.planify.viewmodels.HistoryScreenViewModelFactory
@@ -61,7 +64,8 @@ import com.aurikqq.planify.viewmodels.HistoryScreenViewModelFactory
 data class HistoryScreenUiState(
     val plansList: MutableList<Pair<String, String>> = mutableListOf(),
     val email: String = "",
-    val isSignedIn: Boolean = false
+    val isSignedIn: Boolean = false,
+    val plansPrefix: String = ""
 )
 
 @Composable
@@ -135,10 +139,33 @@ fun HistoryScreen() {
                             enter = expandVertically(expandFrom = Alignment.Top) + fadeIn(),
                             exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut()
                         ) {
-                            Text(
-                                text = plan.first,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Column {
+                                plan.first.lines().forEachIndexed { index, str ->
+                                    if (str.isNotBlank()) {
+                                        if (str.replace(" ", "").startsWith(uiState.plansPrefix)) {
+                                            val prefix = uiState.plansPrefix
+                                            val isDone = str.contains("$prefix*")
+                                            val cleanText = if (isDone) {
+                                                str.replaceFirst("$prefix*", "").trim()
+                                            } else {
+                                                str.replaceFirst(prefix, "").trim()
+                                            }
+
+                                            PlansUnit(
+                                                isDone = isDone,
+                                                text = cleanText,
+                                                onClick = { viewModel.toggleHistoryPlanCompletion(plan.second, index) }
+                                            )
+                                        } else {
+                                            Text(
+                                                text = str,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
 
                         Row (horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
@@ -158,7 +185,7 @@ fun HistoryScreen() {
         } else {
             item {
                 Text(
-                    text = "Здесь будут твои планы,\nоставшиеся в прошлом...",
+                    text = stringResource(R.string.history_empty_message),
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
                     modifier = Modifier.padding(start = 16.dp)
                 )

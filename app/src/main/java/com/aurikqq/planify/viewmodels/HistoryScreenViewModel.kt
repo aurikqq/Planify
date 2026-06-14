@@ -36,35 +36,48 @@ class HistoryScreenViewModel(private val repo: Repository) : ViewModel() {
 
     init {
         loadInitialData()
+        observeRepositoryChanges()
+    }
+
+    private fun observeRepositoryChanges() {
+        viewModelScope.launch {
+            repo.plansUpdatedFlow.collect {
+                val list = repo.getPlansList().sortedByDescending { pair ->
+                    try {
+                        val rawDate = repo.reformatHistoryDate(pair.second)
+                        LocalDate.parse(rawDate, DateTimeFormatter.ofPattern("dd_MM_yyyy"))
+                    } catch (e: Exception) {
+                        LocalDate.MIN
+                    }
+                }.toMutableList()
+
+                _uiState.update {
+                    it.copy(
+                        plansPrefix = repo.getPlansPrefix(),
+                        plansList = list
+                    )
+                }
+            }
+        }
     }
 
     private fun loadInitialData() {
         viewModelScope.launch {
             val list = repo.getPlansList().sortedByDescending { pair ->
                 try {
-                    // repo.getPlansList returns a list of Pair(plans, formattedDate)
-                    // The formatted date depends on locale. This is problematic for parsing.
-                    // Wait, History is stored in SharedPreferences as Pair(plans, formattedDate)
-                    // It should have been stored with the raw date...
-                    "" // Placeholder
-                } catch (e: Exception) { "" }
-                ""
+                    val rawDate = repo.reformatHistoryDate(pair.second)
+                    LocalDate.parse(rawDate, DateTimeFormatter.ofPattern("dd_MM_yyyy"))
+                } catch (e: Exception) {
+                    LocalDate.MIN
+                }
             }.toMutableList()
 
-            // Actually, we should probably check how repo.getPlansList() stores data.
-            // In Repository.kt:
-            // plansList.add(Pair(plans, reformatDate(date)))
-            // reformatDate(date) returns a localized string.
-            // To sort it reliably, we need the raw date.
-            
-            // For now, I'll trust that getPlansFromDatabase() will fix the sorting once sync is done.
-            // But let's try to sort the localized strings if they contain the date.
-            
             _uiState.update {
                 it.copy (
-                    plansList = repo.getPlansList().toMutableList(),
+                    plansList = list,
                     email = repo.getEmail(),
-                    isSignedIn = repo.getIsSignedIn()
+                    isSignedIn = repo.getIsSignedIn(),
+                    plansPrefix = repo.getPlansPrefix()
                 )
             }
         }
@@ -72,11 +85,18 @@ class HistoryScreenViewModel(private val repo: Repository) : ViewModel() {
 
     fun removeFromHistory(date: String) {
         repo.removeFromHistory(date)
-        val list = repo.getPlansList()
+        val list = repo.getPlansList().sortedByDescending { pair ->
+            try {
+                val rawDate = repo.reformatHistoryDate(pair.second)
+                LocalDate.parse(rawDate, DateTimeFormatter.ofPattern("dd_MM_yyyy"))
+            } catch (e: Exception) {
+                LocalDate.MIN
+            }
+        }.toMutableList()
 
         _uiState.update {
             it.copy (
-                plansList = list.toMutableList()
+                plansList = list
             )
         }
 
@@ -116,6 +136,43 @@ class HistoryScreenViewModel(private val repo: Repository) : ViewModel() {
             .addOnFailureListener { e ->
                 Log.w("History Sync", "Error fetching history", e)
             }
+    }
+
+    fun toggleHistoryPlanCompletion(formattedDate: String, index: Int) {
+        val historyList = repo.getPlansList().toMutableList()
+        val historyIndex = historyList.indexOfFirst { it.second == formattedDate }
+
+        if (historyIndex != -1) {
+            val plans = historyList[historyIndex].first
+            val prefix = _uiState.value.plansPrefix
+            val lines = plans.lines().toMutableList()
+
+            if (index in lines.indices) {
+                val line = lines[index]
+                if (line.contains("$prefix*")) {
+                    lines[index] = line.replaceFirst("$prefix*", prefix)
+                } else if (line.contains(prefix)) {
+                    lines[index] = line.replaceFirst(prefix, "$prefix*")
+                }
+
+                val newPlans = lines.joinToString("\n")
+                historyList[historyIndex] = historyList[historyIndex].copy(first = newPlans)
+                repo.setPlansList(historyList)
+
+                _uiState.update {
+                    it.copy(plansList = historyList)
+                }
+
+                try {
+                    val rawDate = repo.reformatHistoryDate(formattedDate)
+                    if (_uiState.value.isSignedIn && isOnline()) {
+                        repo.savePlansToHistoryDatabase(rawDate, newPlans)
+                    }
+                } catch (e: Exception) {
+                    Log.e("History", "Error reformating date for DB sync", e)
+                }
+            }
+        }
     }
 
     fun isOnline() : Boolean {

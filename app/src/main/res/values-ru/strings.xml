@@ -3,35 +3,111 @@
     <string name="app_name">Planify</string>
     <string name="toast_added_plans">Записал!</string>
     <string name="button_add_plans">Добавь это</string>
-    <string name="bottom_text_have_plans">Великолепно! Planify запомнил\nтвои планы на сегодня,\nи поможет вспомнить о них\nраз в 2 часа.\n\nТы можешь добавить в список что пожелаешь - просто напиши это выше.</string>
+    <string name="bottom_text_have_plans">Великолепно! Planify запомнил твои планы на сегодня и поможет вспомнить о них раз в 2 часа.\n\nТы можешь добавить в список что пожелаешь – просто напиши это выше.</string>
     <string name="bottom_text_first_launch">Приветствую! Здесь ты можешь записать все свои грандиозные (и не только) планы на сегодня, а Planify будет напоминать о них каждые 2 часа. Ах да, разумеется, поменять их потом не составит труда!</string>
-    <string name="bottom_text_no_plans_0">Впереди - чудный новый день, а вчерашний подошёл к концу.\nПора поразмыслить над списком дел на сегодня… или можешь немного передохнуть.</string>
+    <string name="bottom_text_no_plans_0">Впереди – чудный новый день, а вчерашний подошёл к концу.\nПора поразмыслить над списком дел на сегодня… или можешь немного передохнуть.</string>
     <string name="label_add_plans">Внести что-то в список…</string>
     <string name="label_set_plans">Что хочешь сделать?</string>
-    <string name="toast_set_plans">Принял!</string>
+    <string name="toast_set_plans">Запомнил!</string>
     <string name="button_set_plans">Запомни</string>
     <string name="plans_card_title">Привет! Вот твои планы:</string>
     <string name="button_finish_editing">Всё, сохраняй</string>
     <string name="label_edit_plans">Меняй сколько влезет</string>
-    <string name="notifications_channel_name">Планы в Planify</string>
+    <string name="notifications_channel_name">Напоминания о планах</string>
     <string name="notification_text">На сегодня ты запланировал:</string>
     <string name="notification_title_03">Эй… просто напоминаю</string>
-    <string name="notifications_channel_description">Напоминания о твоих планах</string>
+    <string name="notifications_channel_description">Уведомления о твоих планах</string>
     <string name="notification_title_01">Привет! Тебя ждут большие дела</string>
     <string name="notification_title_02">Как ты? Освежи в памяти свои планы</string>
     <string name="reset_notification_title">Здравствуй!</string>
     <string name="reset_notification_text_01">Вчерашние планы сброшены. Что сегодня на повестке дня?</string>
     <string name="reset_notification_text_02">Вчерашние планы позабыты. Чем сегодня займёшься?</string>
     <string name="reset_notification_text_03">Вчерашние планы бесследно исчезли. А что насчёт сегодняшних?</string>
+    <string name="reset_notification_text_plans_01">Вчерашние планы сброшены. На сегодня ты планировал:\n%s</string>
+    <string name="reset_notification_text_plans_02">Вчерашние планы позабыты. А на сегодня у тебя это:\n%s</string>
+    <string name="reset_notification_text_plans_03">Вчерашние планы бесследно исчезли. А из сегодняшних у тебя…\n%s</string>
     <string name="button_edit_plans">Поменяй планы</string>
     <string name="toast_edited_plans">Сделано!</string>
+    <string name="permission_dialog_title">Разрешения для уведомлений</string>
+    <string name="permission_dialog_text">Чтобы Planify мог вовремя напоминать тебе о планах, ему нужны разрешения на отправку уведомлений и установку точных будильников.\nЭто ограничения Андроида, по-другому никак.</string>
+    <string name="permission_dialog_confirm">Выдать</string>
+    <string name="permission_dialog_dismiss">Отмена</string>
     <string name="logs_shortcut_short_label">Отправить логи</string>
     <string name="logs_shortcut_long_label">Отправить логи</string>
     <string name="logs_shortcut_disabled_message">Отключено</string>
     <string name="bottom_text_no_plans_1">Снова впереди целый день, открытый для твоих свершений. Удачи тебе сегодня!</string>
-    <string name="bottom_text_no_plans_2">Впереди - новый день, а вчерашний подошёл к концу. Пора поразмыслить над списком дел на сегодня!</string>
-    <string name="bottom_text_no_plans_xmas">Может, снаружи это не так, но в Planify уже царит рождественская атмосфера.\nНе забывай о себе - тем более в такое время года ❄️</string>
+    <string name="bottom_text_no_plans_2">Впереди – новый день, а вчерашний подошёл к концу. Пора поразмыслить над списком дел на сегодня!</string>
+    <string name="bottom_text_no_plans_xmas">Может, снаружи это не так, но в Planify уже царит рождественская атмосфера.\nНе забывай о себе – тем более в такое время года ❄️</string>
     <string name="bottom_text_no_plans_xmas_2">на улице холодно\nсохрани тепло внутри ❤️</string>
     <string name="bottom_text_no_plans_xmas_4">С праздниками!</string>
     <string name="bottom_text_no_plans_xmas_5">В новом году все твои планы обязательно сбудутся, а усилия окупятся.</string>
+
+    <!-- Navigation and Tabs -->
+    <string name="label_plans">Планы</string>
+    <string name="label_activities">Занятия</string>
+    <string name="label_settings">Настройки</string>
+    <string name="label_daily">Дневные</string>
+    <string name="label_notes">Записи</string>
+
+    <!-- History Screen -->
+    <string name="history_empty_message">Здесь будут твои планы,\nоставшиеся в прошлом…</string>
+
+    <!-- Settings Screen -->
+    <string name="changelog_dialog_title">Что поменялось в этой версии:</string>
+    <string name="button_got_it">Понял</string>
+    <string name="settings_category_notifications">Уведомления</string>
+    <string name="setting_plans_notifications">Напоминания о планах</string>
+    <string name="setting_reset_notifications">Напоминания о сбросах</string>
+    <string name="setting_reset_notifications_desc">Уведомления о ночном сбросе ежедневных планов</string>
+    <string name="settings_category_behavior">Поведение</string>
+    <string name="setting_plans_prefix">Префикс пунктов</string>
+    <string name="setting_plans_prefix_desc">То, что при вводе перед строкой делает её отдельным пунктом</string>
+    <string name="setting_plans_prefix_hint">↑ Что-то непонятно? Зажми этот пункт, чтобы получить объяснение</string>
+    <string name="settings_category_appearance">Внешний вид</string>
+    <string name="setting_app_theme">Тема приложения</string>
+    <string name="theme_dark">Тёмная</string>
+    <string name="theme_light">Светлая</string>
+    <string name="settings_category_misc">Всякое</string>
+    <string name="setting_changelog">Новое в этой версии</string>
+    <string name="setting_notifications_cooldown_prefix">Отправлять раз в </string>
+    <string name="hour_1">час</string>
+    <string name="hour_2_4">часа</string>
+    <string name="hour_many">часов</string>
+    <string name="google_sync_title">Синхронизация с Google</string>
+    <string name="google_sync_desc">Твои планы могут синхронизироваться на всех твоих устройствах! Для этого просто войди через Google одним касанием – и не забывай о своих делах нигде.\n\nВсе твои данные остаются при тебе.</string>
+    <string name="button_sign_in_google">Войти через Google</string>
+    <string name="account_info_title">Твой аккаунт</string>
+    <string name="account_info_desc">Планы и записи синхронизируются с другими твоими устройствами через этот аккаунт Google – всё в сохранности.</string>
+    <string name="button_log_out">Выйти</string>
+    <string name="sync_alert_title">Постой…</string>
+    <string name="sync_alert_desc">Если в аккаунте, куда ты войдёшь, есть сохранённые планы или записи, то они перезапишут те, что сохранены на этом устройстве!\n\nЗапиши их куда-нибудь, чтобы потом перенести в аккаунт.</string>
+    <string name="button_continue">Продолжай</string>
+    <string name="button_cancel_sync">Отмени</string>
+    <string name="prefix_dialog_title">Какой хочешь префикс?</string>
+    <string name="button_save">Сохрани</string>
+    <string name="button_cancel">Отмени</string>
+    <string name="prefix_info_title">Что такое префикс?</string>
+    <string name="prefix_info_desc">Всё просто: префикс – это один или несколько символов, которые нужно ввести перед строкой при редактировании списка планов, чтобы эта строка стала пунктом, который можно пометить выполненным. А уже выполненные пункты помечаются звёздочкой (*) после префикса.\n\nС помощью префикса можно, например, разделить планы и комментарии к ним.\n\nВот как это выглядит:</string>
+    <string name="prefix_example_text">Заняться тем, что нравится</string>
+    <string name="toast_sign_in_failed">Не получилось войти…</string>
+    <string name="toast_sign_in_success">Вход выполнен!</string>
+
+    <!-- Notes Screen -->
+    <string name="label_add_note">Добавить запись</string>
+    <string name="notes_empty_message">Записи – раздел, где ты можешь оставить что угодно, и сохранённое здесь не удалится.\nТут может быть то, что тебе надо запомнить или сделать не сегодня.\n\nТакже можно делать несколько отдельных записей.\n</string>
+    <string name="button_change">Поменять</string>
+    <string name="hint_note_title">Как назвать запись?</string>
+    <string name="hint_note_text">Что стоит запомнить?</string>
+
+    <!-- Main Screen -->
+    <string name="toast_sync_failed_no_internet">Не вышло синхронизироваться: нет интернета</string>
+    <string name="button_done">Готово</string>
+    <string name="button_add_day">Добавить день</string>
+    <string name="button_edit_list">Изменить список</string>
+    <string name="toast_update_downloaded">Обновление скачано!</string>
+    <string name="button_download_update">Скачать обновление</string>
+    <string name="button_click_to_update">Нажми, чтобы обновить Planify!</string>
+    <string name="label_downloading">Скачивание…</string>
+    <string name="label_today">сегодня</string>
+    <string name="label_tomorrow">завтра</string>
 </resources>

@@ -28,9 +28,24 @@ const val RESET_NOTIFICATIONS_ENABLED = "notes_notifications_enabled"
 const val PLANS_NOTIFICATIONS_COOLDOWN = "plans_notifications_cooldown"
 const val IS_DARK_THEME_ON = "is_dark_theme_on"
 const val USER_EMAIL = "user_email"
-const val TEXT_WIDGET_TEXT = "text_widget_text"
-const val TEXT_WIDGET_TITLE = "text_widget_title"
-const val TEXT_WIDGET_DATA = "text_widget_data"
+//const val TEXT_WIDGET_TEXT = "text_widget_text"
+//const val TEXT_WIDGET_TITLE = "text_widget_title"
+//const val TEXT_WIDGET_DATA = "text_widget_data"
 const val PLANS_PREFIX = "plans_prefix"
 const val IS_PREFIX_HINT_SHOWN = "is_prefix_hint_shown"
-const val CHANGELOG = ""
+const val CHANGELOG = "- Теперь можно делать планы на пункты прямо в своих планах! Пункты можно помечать выполненными, а обычный текст никуда не делся - используй и совмещай их как душе угодно\n" +
+        "      * Это происходит с помощью префикса, который можно настроить и нужно прописать перед строкой, чтобы сделать её пунктом\n" +
+        "      * Пункты сохраняются и в истории, и ты можешь вернуться к ним, чтобы пометить выполненными\n" +
+        "- Изменение цветов кнопок теперь анимировано\n" +
+        "- Теперь при первом запуске Planify не кидает тебя в настройки для разрешений, а просит их в диалоге при первой записи планов\n" +
+        "- Полностью обновлена локализация - как английская, так и русская.\n" +
+        "- Исправлено... много чего:\n" +
+        "      * Многочисленные проблемы с синхронизацией, например, перестройки интерфейса на ходу из-за поздней синхронизации или при взаимодействии с записями\n" +
+        "      * Теперь боковая панель не мелькает при запуске приложения\n" +
+        "      * Тематическая иконка Material You отображается нормально\n" +
+        "      * История теперь сохраняется как надо и больше не удаляется\n" +
+        "      * Больше нет уведомления о сбросе планов после перезагрузки\n" +
+        "      * Анимация перехода к истории и от неё изменена\n" +
+        "      * Тема при первом запуске теперь подстраивается под систему, а не остаётся светлой\n" +
+        "      * Фон под нижней панелью в настройках теперь прозрачный\n" +
+        "      * и так далее..."

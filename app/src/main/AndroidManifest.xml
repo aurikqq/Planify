@@ -22,11 +22,14 @@
         android:localeConfig="@xml/locate_config"
         android:supportsRtl="true"
         android:theme="@style/Theme.Planify"
-        tools:targetApi="33" >
+        tools:targetApi="33"
+        android:roundIcon="@mipmap/ic_launcher_round">
+        <!--
         <activity
             android:name=".widgets.textwidget.WidgetSetupActivity"
             android:exported="true"
             android:theme="@style/Theme.Planify" />
+        -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -72,6 +75,7 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+        <!--
         <receiver
             android:name=".widgets.textwidget.WidgetReceiver"
             android:exported="true" >
@@ -83,6 +87,7 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_info" />
         </receiver>
+        -->
     </application>
 
 </manifest>

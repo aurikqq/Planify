@@ -269,9 +269,9 @@ fun showPlansResetNotification(context: Context) {
             )
         else
             listOf(
-                "Вчерашние планы сброшены. На сегодня ты планировал:\n$plans",
-                "Вчерашние планы позабыты. А на сегодня у тебя это:\n$plans",
-                "Вчерашние планы бесследно исчезли. А из сегодняшних у тебя...\n$plans"
+                context.getString(R.string.reset_notification_text_plans_01, plans),
+                context.getString(R.string.reset_notification_text_plans_02, plans),
+                context.getString(R.string.reset_notification_text_plans_03, plans)
             )
 
 

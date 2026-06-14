@@ -39,6 +39,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.InvertColors
@@ -47,6 +48,7 @@ import androidx.compose.material.icons.filled.NotificationsNone
 import androidx.compose.material.icons.filled.Start
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBarDefaults
+import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -56,6 +58,7 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
@@ -78,6 +81,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -97,6 +101,7 @@ import com.aurikqq.planify.R
 import com.aurikqq.planify.components.AnimatedButton
 import com.aurikqq.planify.components.AnimatedElevatedButton
 import com.aurikqq.planify.components.AnimatedTextButton
+import com.aurikqq.planify.components.PlansUnit
 import com.aurikqq.planify.isTablet
 import com.aurikqq.planify.ui.theme.PlanifyTheme
 import com.aurikqq.planify.viewmodels.SettingsScreenViewModel
@@ -142,7 +147,7 @@ fun SettingsScreen(viewModel: SettingsScreenViewModel) {
             AlertDialog(
                 onDismissRequest = { isChangelogShown = false },
                 title = {
-                    Text("\uD83C\uDF84 Что поменялось в этой версии:")
+                    Text(stringResource(R.string.changelog_dialog_title))
                 },
                 text = {
                 LazyColumn {
@@ -151,14 +156,14 @@ fun SettingsScreen(viewModel: SettingsScreenViewModel) {
                     }
                     item {
                         AsyncImage(
-                            model = "https://i.pinimg.com/736x/26/90/2d/26902dc92d66500f3bab3f602d3fe4f2.jpg", //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                            model = "https://i.pinimg.com/736x/ce/93/27/ce93279ca0ac3e19369d305fca0c8175.jpg",
                             contentDescription = null
                         )
                     } }
                 },
                 confirmButton = {
                     AnimatedTextButton(onClick = { isChangelogShown = false }) {
-                        Text("Понял")
+                        Text(stringResource(R.string.button_got_it))
                     }
                 }
             )
@@ -192,7 +197,7 @@ fun SettingsScreen(viewModel: SettingsScreenViewModel) {
         }
 
         if (isPrefixInfoBottomSheetShown) {
-            PrefixInfoBottomSheet { isPrefixInfoBottomSheetShown = false }
+            PrefixInfoBottomSheet(uiState.plansPrefix) { isPrefixInfoBottomSheetShown = false }
         }
 
         LazyColumn(
@@ -216,9 +221,9 @@ fun SettingsScreen(viewModel: SettingsScreenViewModel) {
             }
 
             item {
-                SettingsCategory("Уведомления") {
+                SettingsCategory(stringResource(R.string.settings_category_notifications)) {
                     ListItem(
-                        headlineContent = { Text("Напоминания о планах") },
+                        headlineContent = { Text(stringResource(R.string.setting_plans_notifications)) },
                         trailingContent = {
                             Switch(
                                 checked = tempPlansNotificationsEnabled,
@@ -268,7 +273,7 @@ fun SettingsScreen(viewModel: SettingsScreenViewModel) {
                         )
                     }
                     ListItem(
-                        headlineContent = { Text("Напоминания о сбросах") },
+                        headlineContent = { Text(stringResource(R.string.setting_reset_notifications)) },
                         trailingContent = {
                             Switch(
                                 checked = tempResetNotificationsEnabled,
@@ -286,16 +291,16 @@ fun SettingsScreen(viewModel: SettingsScreenViewModel) {
                             )
                         },
                         leadingContent = { Icon(Icons.Default.NotificationsNone, null) },
-                        supportingContent = { Text("Уведомления о ночном сбросе ежедневных планов") },
+                        supportingContent = { Text(stringResource(R.string.setting_reset_notifications_desc)) },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent)
                     )
                 }
             }
 
             item {
-                SettingsCategory("Поведение") {
+                SettingsCategory(stringResource(R.string.settings_category_behavior)) {
                     ListItem(
-                        headlineContent = { Text("Префикс пунктов") },
+                        headlineContent = { Text(stringResource(R.string.setting_plans_prefix)) },
                         trailingContent = {
                             Text(
                                 uiState.plansPrefix,
@@ -306,7 +311,7 @@ fun SettingsScreen(viewModel: SettingsScreenViewModel) {
                         leadingContent = { Icon(Icons.Default.Start, null) },
                         supportingContent = {
                             Text(
-                                "То, что при вводе перед строкой делает её отдельным пунктом"
+                                stringResource(R.string.setting_plans_prefix_desc)
                             )
                         },
                         modifier = Modifier.combinedClickable(
@@ -325,9 +330,8 @@ fun SettingsScreen(viewModel: SettingsScreenViewModel) {
                 }
                 AnimatedVisibility(visible = uiState.isPrefixHintShown) {
                     Column {
-                        Spacer(Modifier.size(4.dp))
                         Text(
-                            "Что-то не понятно? Зажми на эту настройку, чтобы получить объяснение",
+                            stringResource(R.string.setting_plans_prefix_hint),
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
                             fontSize = 14.sp,
                             modifier = Modifier.padding(horizontal = 16.dp)
@@ -337,9 +341,9 @@ fun SettingsScreen(viewModel: SettingsScreenViewModel) {
             }
 
             item {
-                SettingsCategory("Внешний вид") {
+                SettingsCategory(stringResource(R.string.settings_category_appearance)) {
                     ListItem(
-                        headlineContent = { Text("Тема приложения") },
+                        headlineContent = { Text(stringResource(R.string.setting_app_theme)) },
                         trailingContent = {
                             Box(
                                 modifier = Modifier
@@ -350,8 +354,8 @@ fun SettingsScreen(viewModel: SettingsScreenViewModel) {
                         leadingContent = { Icon(Icons.Default.InvertColors, null) },
                         supportingContent = { Text(
                             text = when(uiState.isDarkThemeOn) {
-                                true -> "Тёмная"
-                                false -> "Светлая"
+                                true -> stringResource(R.string.theme_dark)
+                                false -> stringResource(R.string.theme_light)
                             }
                         ) },
                         modifier = Modifier.clickable(
@@ -365,9 +369,9 @@ fun SettingsScreen(viewModel: SettingsScreenViewModel) {
             }
 
             item {
-                SettingsCategory("Всякое", false) {
+                SettingsCategory(stringResource(R.string.settings_category_misc), false) {
                     ListItem(
-                        headlineContent = { Text("Новое в этой версии") },
+                        headlineContent = { Text(stringResource(R.string.setting_changelog)) },
                         leadingContent = { Icon(Icons.Default.Info, null) },
                         modifier = Modifier.clickable(
                             enabled = true,
@@ -414,7 +418,7 @@ fun RollingNumberText(targetValue: Int) {
         }
     }
 
-    Text("Отправлять раз в ")
+    Text(stringResource(R.string.setting_notifications_cooldown_prefix) + ' ')
 
     AnimatedContent(
         targetState = currentValue,
@@ -450,9 +454,9 @@ fun RollingNumberText(targetValue: Int) {
     }
     Text(
         text = when (targetValue) {
-            1, 21 -> "час"
-            in 2..4, 22, 23 -> "часа"
-            else -> "часов"
+            1, 21 -> stringResource(R.string.hour_1)
+            in 2..4, 22, 23 -> stringResource(R.string.hour_2_4)
+            else -> stringResource(R.string.hour_many)
         },
         color = if (targetValue == 1) MaterialTheme.colorScheme.primary
         else Color.Unspecified
@@ -470,7 +474,7 @@ fun SignInOffer(onClick: () -> Unit) {
     ) {
         Column(modifier = Modifier.padding(top = 16.dp)) {
             Text(
-                "Синхронизация с Google",
+                stringResource(R.string.google_sync_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(horizontal = 16.dp)
@@ -478,9 +482,7 @@ fun SignInOffer(onClick: () -> Unit) {
 
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    "Твои планы могут синхронизироваться на всех твоих устройстах! " +
-                            "Для этого просто войди через Google одним касанием - и не забывай о своих делах нигде." +
-                            "\n\nВсе твои данные остаются при тебе."
+                    stringResource(R.string.google_sync_desc)
                 )
 
                 Spacer(Modifier.size(24.dp))
@@ -501,7 +503,7 @@ fun SignInOffer(onClick: () -> Unit) {
                             Image(painter = painterResource(R.drawable.g_logo), null)
                             Spacer(Modifier.size(10.dp))
                             Text(
-                                "Войти через Google",
+                                stringResource(R.string.button_sign_in_google),
                                 fontFamily = FontFamily(Font(R.font.roboto_medium)),
                                 fontSize = 14.sp
                             )
@@ -524,7 +526,7 @@ fun AccountInfo(uiState: SettingsScreenUiState, viewModel: SettingsScreenViewMod
     ) {
         Column(modifier = Modifier.padding(top = 16.dp)) {
             Text(
-                "Твой аккаунт",
+                stringResource(R.string.account_info_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(horizontal = 16.dp)
@@ -545,12 +547,12 @@ fun AccountInfo(uiState: SettingsScreenUiState, viewModel: SettingsScreenViewMod
                 }
 
                 Spacer(Modifier.size(12.dp))
-                Text("Планы и записи синхронизируются с другими твоими устройствами через этот аккаунт Google - всё в сохранности.")
+                Text(stringResource(R.string.account_info_desc))
                 Spacer(Modifier.size(12.dp))
 
                 Box(contentAlignment = Alignment.CenterEnd, modifier = Modifier.fillMaxWidth()) {
                     AnimatedTextButton(onClick = { viewModel.logOut() }) {
-                        Text("Выйти")
+                        Text(stringResource(R.string.button_log_out))
                     }
                 }
             }
@@ -574,13 +576,13 @@ fun ThemeModalSheet(uiState: SettingsScreenUiState, viewModel: SettingsScreenVie
                         .fillMaxWidth()
                 ) {
                     PlanifyTheme(darkTheme = false) {
-                        ThemeBox("Светлая", !isInDarkTheme) {
+                        ThemeBox(stringResource(R.string.theme_light), !isInDarkTheme) {
                             viewModel.setIsInDarkTheme(false)
                         }
                     }
 
                     PlanifyTheme(darkTheme = true) {
-                        ThemeBox("Тёмная", isInDarkTheme) {
+                        ThemeBox(stringResource(R.string.theme_dark), isInDarkTheme) {
                             viewModel.setIsInDarkTheme(true)
                         }
                     }
@@ -681,20 +683,19 @@ fun SyncAlertModal(onClick: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("Постой...")
+            Text(stringResource(R.string.sync_alert_title))
         },
         text = {
-            Text("Если в аккаунте, куда ты войдёшь, есть сохранённые планы или записи, то они перезапишут те, что сохранены на этом устройстве!\n\n" +
-                    "Запиши их куда-нибудь, чтобы потом перенести в аккаунт.")
+            Text(stringResource(R.string.sync_alert_desc))
         },
         confirmButton = {
             AnimatedElevatedButton(onClick = onClick) {
-                Text("Продолжай")
+                Text(stringResource(R.string.button_continue))
             }
         },
         dismissButton = {
             AnimatedTextButton(onClick = onDismiss) {
-                Text("Отмени")
+                Text(stringResource(R.string.button_cancel_sync))
             }
         }
     )
@@ -707,16 +708,16 @@ fun PrefixInputModal(currentPrefix: String, onClick: (String) -> Unit, onDismiss
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Какой хочешь префикс?") },
+        title = { Text(stringResource(R.string.prefix_dialog_title)) },
         text = { OutlinedTextField(value = tempPrefix, onValueChange = { tempPrefix = it }) },
-        confirmButton = { AnimatedElevatedButton(onClick = { onClick(tempPrefix) }) { Text("Сохрани") } },
-        dismissButton = { AnimatedTextButton(onClick = onDismiss) { Text("Отмени") } }
+        confirmButton = { AnimatedElevatedButton(onClick = { onClick(tempPrefix) }) { Text(stringResource(R.string.button_save)) } },
+        dismissButton = { AnimatedTextButton(onClick = onDismiss) { Text(stringResource(R.string.button_cancel)) } }
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PrefixInfoBottomSheet(onDismiss: () -> Unit) {
+fun PrefixInfoBottomSheet(prefix: String, onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
@@ -725,19 +726,53 @@ fun PrefixInfoBottomSheet(onDismiss: () -> Unit) {
                 .padding(bottom = 32.dp)
         ) {
             Text(
-                "Что такое префикс?",
+                stringResource(R.string.prefix_info_title),
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.primary
             )
             Spacer(Modifier.size(16.dp))
             Text(
-                "Всё просто: префикс - это один или несколько символов, которые нужно ввести перед строкой при редактировании списка планов, " +
-                        "чтобы эта строка стала пунктом, который можно пометить выполеннным."
+                stringResource(R.string.prefix_info_desc)
             )
-            Spacer(Modifier.size(8.dp))
-            Text(
-                "С помощью префикса можно, например, можно разделить планы и комментарии к ним."
-            )
+
+            Spacer(Modifier.size(24.dp))
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = prefix + stringResource(R.string.prefix_example_text),
+                    onValueChange = {},
+                    enabled = false,
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                        disabledBorderColor = MaterialTheme.colorScheme.outline,
+                    )
+                )
+
+                Icon(
+                    Icons.Default.ArrowDownward,
+                    null,
+                    modifier = Modifier.padding(vertical = 12.dp)
+                )
+
+                Card(
+                    elevation = CardDefaults.cardElevation(4.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        PlansUnit(
+                            isDone = false,
+                            text = stringResource(R.string.prefix_example_text),
+                            enabled = false,
+                            onClick = {}
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -746,7 +781,7 @@ fun PrefixInfoBottomSheet(onDismiss: () -> Unit) {
 @Composable
 fun SettingsTopBar() {
     TopAppBar(
-        title = { Text("Настройки") },
+        title = { Text(stringResource(R.string.label_settings)) },
         windowInsets = WindowInsets(0,0, 0, 0),
         modifier = Modifier.padding(start = if (isTablet()) 64.dp else 0.dp)
     )
@@ -830,23 +865,23 @@ suspend fun signIn(viewModel: SettingsScreenViewModel,request: GetCredentialRequ
             viewModel.logIn(email)
         }
 
-        Toast.makeText(context, "Sign in successful!", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, context.getString(R.string.toast_sign_in_success), Toast.LENGTH_SHORT).show()
         Log.i(TAG, "Sign in successful!")
     } catch (e: GetCredentialException) {
-        Toast.makeText(context, "Не получилось войти...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, context.getString(R.string.toast_sign_in_failed), Toast.LENGTH_SHORT).show()
         Log.e(TAG, "$failureMessage: Failure getting credentials", e)
 
     } catch (e: GoogleIdTokenParsingException) {
-        Toast.makeText(context, "Не получилось войти...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, context.getString(R.string.toast_sign_in_failed), Toast.LENGTH_SHORT).show()
         Log.e(TAG, "$failureMessage: Issue with parsing received GoogleIdToken", e)
 
     } catch (e: NoCredentialException) {
-        Toast.makeText(context, "Не получилось войти...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, context.getString(R.string.toast_sign_in_failed), Toast.LENGTH_SHORT).show()
         Log.e(TAG, "$failureMessage: No credentials found", e)
         return e
 
     } catch (e: GetCredentialCustomException) {
-        Toast.makeText(context, "Не получилось войти...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, context.getString(R.string.toast_sign_in_failed), Toast.LENGTH_SHORT).show()
         Log.e(TAG, "$failureMessage: Issue with custom credential request", e)
 
     } catch (e: GetCredentialCancellationException) {

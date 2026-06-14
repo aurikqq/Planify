@@ -252,9 +252,11 @@ class NotesScreenViewModel(private val repo: Repository) : ViewModel() {
         return repo.isOnline()
     }
 
+/*
     fun updateWidget(note: Note) {
         viewModelScope.launch {
             //repo.updateTextWidgetData(TextWidgetDataTypes.NOTE, note.id)
         }
     }
+*/
 }

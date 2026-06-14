@@ -1,3 +1,4 @@
+/*
 package com.aurikqq.planify.widgets.textwidget
 
 import android.os.Bundle
@@ -32,11 +33,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import com.aurikqq.planify.PREFERENCES_NAME
+import com.aurikqq.planify.R
 import com.aurikqq.planify.Repository
 import com.aurikqq.planify.TextWidgetDataTypes
 //import com.aurikqq.planify.setTextWidgetData
@@ -62,7 +65,7 @@ class WidgetSetupActivity : ComponentActivity() {
     private fun TopBar() {
         TopAppBar(
             title = {
-                Text("Выбери, что отображать в виджете")
+                Text(stringResource(R.string.widget_setup_title))
             }
         )
     }
@@ -86,7 +89,7 @@ class WidgetSetupActivity : ComponentActivity() {
         ) {
             if (days.isNotEmpty()) {
                 item {
-                    Text("Планы", color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(R.string.label_plans), color = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.size(32.dp))
                 }
 
@@ -137,7 +140,7 @@ class WidgetSetupActivity : ComponentActivity() {
             }
             if (notes.isNotEmpty()) {
                 item {
-                    Text("Записи", color = MaterialTheme.colorScheme.primary)
+                    Text(stringResource(R.string.label_notes), color = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.size(32.dp))
                 }
 
@@ -187,3 +190,4 @@ class WidgetSetupActivity : ComponentActivity() {
         }
     }
 }
+*/
