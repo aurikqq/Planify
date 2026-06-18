@@ -263,14 +263,13 @@ fun AppActivity() {
     var plansCardRect by remember { mutableStateOf<Rect?>(null) }
     var launchAnimationPlaying by remember { mutableStateOf(true) }
 
-    var isModalGesturesEnabled by remember { mutableStateOf(true) }
 
     PlanifyTheme(darkTheme = settingsUiState.isDarkThemeOn) {
         if (!tabletMode) {
             ModalNavigationDrawer(
                 drawerState = drawerState,
                 drawerContent = { DrawerContent(uiState, viewModel, drawerState, scope) },
-                gesturesEnabled = isModalGesturesEnabled,
+                gesturesEnabled = false,
                 modifier = Modifier
                     .fillMaxSize()
             ) {
@@ -620,7 +619,6 @@ fun TabsBar(
                 contentColor = TabRowDefaults.secondaryContentColor,
                 indicator = {
                     TabRowDefaults.PrimaryIndicator(
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
                         width = 64.dp,
                         modifier = Modifier
                             .tabIndicatorOffset(pagerState.currentPage)

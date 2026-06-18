@@ -22,6 +22,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import java.time.LocalDate
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Locale
@@ -83,7 +84,7 @@ class ResetReceiver : BroadcastReceiver() {
                 Context.MODE_PRIVATE
             )
             val repo = Repository(sharedPreferences!!, context)
-            if (repo.getResetNotificationsEnabled()) {
+            if (repo.getResetNotificationsEnabled() && repo.havePlansForDate("${LocalDate.now().dayOfMonth - 1}_${LocalDate.now().month}_${LocalDate.now().year}")) {
                 showPlansResetNotification(context)
             }
 

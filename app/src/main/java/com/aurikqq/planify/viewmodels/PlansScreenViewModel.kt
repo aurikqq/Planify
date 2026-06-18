@@ -101,6 +101,7 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
     fun selectDate(date: String) {
         val plans = repo.getPlansForDate(date)
         val havePlans = repo.havePlansForDate(date)
+        println(date)
 
         _uiState.update {
             it.copy (
