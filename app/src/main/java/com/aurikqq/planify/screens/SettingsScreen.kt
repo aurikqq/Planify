@@ -156,7 +156,7 @@ fun SettingsScreen(viewModel: SettingsScreenViewModel) {
                     }
                     item {
                         AsyncImage(
-                            model = "https://i.pinimg.com/736x/ce/93/27/ce93279ca0ac3e19369d305fca0c8175.jpg",
+                            model = "https://i.pinimg.com/736x/ca/46/12/ca46127431b2f18d43022920a7ab9b49.jpg",
                             contentDescription = null
                         )
                     } }

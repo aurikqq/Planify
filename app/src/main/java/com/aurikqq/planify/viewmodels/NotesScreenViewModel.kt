@@ -8,11 +8,13 @@ import com.aurikqq.planify.Repository
 import com.aurikqq.planify.screens.NotesScreenUiState
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import java.util.UUID
 
@@ -49,13 +51,15 @@ class NotesScreenViewModel(private val repo: Repository) : ViewModel() {
 
     private fun loadInitialData() {
         viewModelScope.launch {
-            val notes = repo.getNotesList()
-                .sortedWith(compareByDescending<Note> { it.timestamp }.thenByDescending { it.id })
-                .toMutableList()
+            val notesList = withContext(Dispatchers.IO) { repo.getNotesList() }
+            val sortedNotes = withContext(Dispatchers.Default) {
+                notesList.sortedWith(compareByDescending<Note> { it.timestamp }.thenByDescending { it.id })
+                    .toMutableList()
+            }
 
             _uiState.update {
                 it.copy (
-                    notes = notes,
+                    notes = sortedNotes,
                     isSignedIn = repo.getIsSignedIn(),
                     email = repo.getEmail()
                 )
@@ -123,41 +127,45 @@ class NotesScreenViewModel(private val repo: Repository) : ViewModel() {
     }
 
     fun setNote(note: Note = Note()) {
-        val note = if(note.id.isBlank()) Note(UUID.randomUUID().toString(), _uiState.value.tempNoteTitle, _uiState.value.tempNote, timestamp = System.currentTimeMillis()) else note
+        val finalNote = if(note.id.isBlank()) Note(UUID.randomUUID().toString(), _uiState.value.tempNoteTitle, _uiState.value.tempNote, timestamp = System.currentTimeMillis()) else note
 
-        if (_uiState.value.isSignedIn && isOnline())
-            sendNoteToDatabase(note)
-        repo.saveNote(note)
-        val newNotesList = repo.getNotesList()
-            .sortedWith(compareByDescending<Note> { it.timestamp }.thenByDescending { it.id })
-            .toMutableList()
+        viewModelScope.launch {
+            if (_uiState.value.isSignedIn && isOnline())
+                sendNoteToDatabase(finalNote)
+            repo.saveNote(finalNote)
+            val notesList = withContext(Dispatchers.IO) { repo.getNotesList() }
+            val sortedList = withContext(Dispatchers.Default) {
+                notesList.sortedWith(compareByDescending<Note> { it.timestamp }.thenByDescending { it.id })
+                    .toMutableList()
+            }
 
-        _uiState.update {
-            it.copy(
-                notes = newNotesList,
-                tempNoteTitle = "",
-                tempNote = ""
-            )
+            _uiState.update {
+                it.copy(
+                    notes = sortedList,
+                    tempNoteTitle = "",
+                    tempNote = ""
+                )
+            }
         }
-
-        /*TODO*/ // repo.sendToast(R.string.toast_set_plans, Toast.LENGTH_SHORT)
     }
 
     fun removeNote(note: Note) {
-        if (_uiState.value.isSignedIn && isOnline())
-            removeNoteFromDatabase(note)
-        repo.removeNote(note)
-        val newNotesList = repo.getNotesList()
-            .sortedWith(compareByDescending<Note> { it.timestamp }.thenByDescending { it.id })
-            .toMutableList()
+        viewModelScope.launch {
+            if (_uiState.value.isSignedIn && isOnline())
+                removeNoteFromDatabase(note)
+            repo.removeNote(note)
+            val notesList = withContext(Dispatchers.IO) { repo.getNotesList() }
+            val sortedList = withContext(Dispatchers.Default) {
+                notesList.sortedWith(compareByDescending<Note> { it.timestamp }.thenByDescending { it.id })
+                    .toMutableList()
+            }
 
-        _uiState.update {
-            it.copy(
-                notes = newNotesList,
-            )
+            _uiState.update {
+                it.copy(
+                    notes = sortedList,
+                )
+            }
         }
-
-        //repo.sendToast("Удалил!", Toast.LENGTH_SHORT)
     }
 
     fun sendNoteToDatabase(note: Note) {
@@ -190,28 +198,33 @@ class NotesScreenViewModel(private val repo: Repository) : ViewModel() {
     }
 
     fun getNotesFromDatabase() {
-        if (isOnline()) {
-            db.collection(_uiState.value.email)
+        val email = _uiState.value.email
+        if (email.isNotBlank() && email != "null" && isOnline()) {
+            db.collection(email)
                 .document("notes")
                 .collection("notes_collection")
                 .get()
                 .addOnSuccessListener { notes ->
-                    val result = notes.map { note ->
-                        Note(
-                            note.id,
-                            note.get("title").toString(),
-                            note.get("text").toString(),
-                            note.get("is_expanded") as Boolean,
-                            note.get("timestamp") as? Long ?: 0L
-                        )
-                    }.sortedWith(compareByDescending<Note> { it.timestamp }.thenByDescending { it.id })
-                        .toMutableList()
-                    Log.d("Plans Sync", "Imported notes from DB")
+                    viewModelScope.launch {
+                        val result = withContext(Dispatchers.Default) {
+                            notes.map { note ->
+                                Note(
+                                    note.id,
+                                    note.get("title").toString(),
+                                    note.get("text").toString(),
+                                    note.get("is_expanded") as Boolean,
+                                    note.get("timestamp") as? Long ?: 0L
+                                )
+                            }.sortedWith(compareByDescending<Note> { it.timestamp }.thenByDescending { it.id })
+                                .toMutableList()
+                        }
+                        Log.d("Plans Sync", "Imported notes from DB")
 
-                    _uiState.update {
-                        it.copy(
-                            notes = result
-                        )
+                        _uiState.update {
+                            it.copy(
+                                notes = result
+                            )
+                        }
                     }
                 }
                 .addOnFailureListener { e ->

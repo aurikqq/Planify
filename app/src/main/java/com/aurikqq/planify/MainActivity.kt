@@ -230,26 +230,15 @@ fun isKeyboardOpen() : Boolean {
 @Composable
 fun AppActivity() {
     val context = LocalContext.current
+    val app = context.applicationContext as PlanifyApp
+    val repository = app.repository
     val navController = rememberNavController()
 
     val viewModel: PlansScreenViewModel = viewModel(
-        factory = PlansScreenViewModelFactory(
-            Repository(
-                context.getSharedPreferences(
-                    PREFERENCES_NAME, Context.MODE_PRIVATE),
-                context
-            )
-        )
+        factory = PlansScreenViewModelFactory(repository)
     )
     val settingsViewModel: SettingsScreenViewModel = viewModel(
-        factory = SettingsScreenViewModelFactory(
-            Repository(
-                context.getSharedPreferences(
-                    PREFERENCES_NAME, Context.MODE_PRIVATE
-                ),
-                context
-            )
-        )
+        factory = SettingsScreenViewModelFactory(repository)
     )
 
     val uiState by viewModel.uiState.collectAsState()
@@ -257,19 +246,18 @@ fun AppActivity() {
     val tabletMode = isTablet(context)
 
     val drawerState = remember{ DrawerState(DrawerValue.Closed) }
-    var drawerContent by remember { mutableStateOf<@Composable () -> Unit>({}) }
     val scope = rememberCoroutineScope()
 
-    var plansCardRect by remember { mutableStateOf<Rect?>(null) }
-    var launchAnimationPlaying by remember { mutableStateOf(true) }
-
+    val navBackStackEntry = navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry.value?.destination?.route
+    val gesturesEnabled = currentRoute == MAIN_SCREEN
 
     PlanifyTheme(darkTheme = settingsUiState.isDarkThemeOn) {
         if (!tabletMode) {
             ModalNavigationDrawer(
                 drawerState = drawerState,
                 drawerContent = { DrawerContent(uiState, viewModel, drawerState, scope) },
-                gesturesEnabled = false,
+                gesturesEnabled = gesturesEnabled,
                 modifier = Modifier
                     .fillMaxSize()
             ) {
@@ -351,7 +339,7 @@ fun AppActivity() {
                             .background(Color.Transparent)
                             .align(Alignment.BottomCenter)
                     ) {
-                        UpdateLabel()
+                        UpdateLabel(viewModel)
                         if (!tabletMode) BottomBar(navController)
                     }
                 }
@@ -437,7 +425,7 @@ fun AppActivity() {
                         .background(Color.Transparent)
                         .align(Alignment.BottomCenter)
                 ) {
-                    UpdateLabel()
+                    UpdateLabel(viewModel)
                     if (!tabletMode) BottomBar(navController)
                 }
             }

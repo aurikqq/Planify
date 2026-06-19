@@ -72,6 +72,7 @@ import com.aurikqq.planify.CHANGELOG
 import com.aurikqq.planify.HISTORY_SCREEN
 import com.aurikqq.planify.NOTES_SCREEN
 import com.aurikqq.planify.PLANS_SCREEN
+import com.aurikqq.planify.PlanifyApp
 import com.aurikqq.planify.PREFERENCES_NAME
 import com.aurikqq.planify.R
 import com.aurikqq.planify.Repository
@@ -140,16 +141,17 @@ fun MainScreen(
         }
     )
 
+    val app = context.applicationContext as PlanifyApp
+    val repository = app.repository
     val notesViewModel: NotesScreenViewModel = viewModel(
-        factory = NotesScreenViewModelFactory(Repository(context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE), context))
+        factory = NotesScreenViewModelFactory(repository)
     )
     val historyViewModel: HistoryScreenViewModel = viewModel(
-        factory = HistoryScreenViewModelFactory(Repository(context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE), context))
+        factory = HistoryScreenViewModelFactory(repository)
     )
 
     LaunchedEffect(uiState.isSignedIn) {
         if (uiState.isSignedIn) {
-            val repository = Repository(context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE), context)
             repository.observeConnectivity().collect { isOnline ->
                 if (isOnline) {
                     viewModel.getPlansFromDatabase()
@@ -163,7 +165,7 @@ fun MainScreen(
     }
 
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(uiState.isUpdatePopupShown) {
         if (!uiState.isUpdatePopupShown) {
             showUpdateDialog = true
         }
@@ -525,7 +527,7 @@ fun UpdateDialog(onClickOrDismiss: () -> Unit) {
                 }
                 item {
                     AsyncImage(
-                        model = "https://i.pinimg.com/736x/ce/93/27/ce93279ca0ac3e19369d305fca0c8175.jpg",
+                        model = "https://i.pinimg.com/736x/ca/46/12/ca46127431b2f18d43022920a7ab9b49.jpg",
                         contentDescription = null
                     )
                 }
@@ -540,20 +542,12 @@ fun UpdateDialog(onClickOrDismiss: () -> Unit) {
 }
 
 @Composable
-fun UpdateLabel() {
+fun UpdateLabel(viewModel: PlansScreenViewModel) {
     val context = LocalContext.current
     var isUpdateAvailable by rememberSaveable { mutableStateOf(false) }
     var isDownloading by rememberSaveable { mutableStateOf(false) }
     var dlProgress by rememberSaveable { mutableIntStateOf(0) }
     var apk by rememberSaveable { mutableStateOf<File?>(null) }
-
-    val viewModel: PlansScreenViewModel = viewModel(
-        factory = PlansScreenViewModelFactory(
-            Repository(
-                context.getSharedPreferences(
-                    PREFERENCES_NAME, Context.MODE_PRIVATE),
-                context
-            )))
 
     LaunchedEffect(Unit) {
         isUpdateAvailable = checkUpdates(context)

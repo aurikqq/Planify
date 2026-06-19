@@ -8,13 +8,16 @@ import com.aurikqq.planify.Repository
 import com.aurikqq.planify.screens.HistoryScreenUiState
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @Suppress("UNCHECKED_CAST")
 class HistoryScreenViewModelFactory(
@@ -42,19 +45,23 @@ class HistoryScreenViewModel(private val repo: Repository) : ViewModel() {
     private fun observeRepositoryChanges() {
         viewModelScope.launch {
             repo.plansUpdatedFlow.collect {
-                val list = repo.getPlansList().sortedByDescending { pair ->
-                    try {
-                        val rawDate = repo.reformatHistoryDate(pair.second)
-                        LocalDate.parse(rawDate, DateTimeFormatter.ofPattern("dd_MM_yyyy"))
-                    } catch (e: Exception) {
-                        LocalDate.MIN
-                    }
-                }.toMutableList()
+                val storageDateFormatter = DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())
+                val plansList = withContext(Dispatchers.IO) { repo.getPlansList() }
+                val sortedList = withContext(Dispatchers.Default) {
+                    plansList.sortedByDescending { pair ->
+                        try {
+                            val rawDate = repo.reformatHistoryDate(pair.second)
+                            LocalDate.parse(rawDate, storageDateFormatter)
+                        } catch (e: Exception) {
+                            LocalDate.MIN
+                        }
+                    }.toMutableList()
+                }
 
                 _uiState.update {
                     it.copy(
                         plansPrefix = repo.getPlansPrefix(),
-                        plansList = list
+                        plansList = sortedList
                     )
                 }
             }
@@ -63,18 +70,22 @@ class HistoryScreenViewModel(private val repo: Repository) : ViewModel() {
 
     private fun loadInitialData() {
         viewModelScope.launch {
-            val list = repo.getPlansList().sortedByDescending { pair ->
-                try {
-                    val rawDate = repo.reformatHistoryDate(pair.second)
-                    LocalDate.parse(rawDate, DateTimeFormatter.ofPattern("dd_MM_yyyy"))
-                } catch (e: Exception) {
-                    LocalDate.MIN
-                }
-            }.toMutableList()
+            val storageDateFormatter = DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())
+            val plansList = withContext(Dispatchers.IO) { repo.getPlansList() }
+            val sortedList = withContext(Dispatchers.Default) {
+                plansList.sortedByDescending { pair ->
+                    try {
+                        val rawDate = repo.reformatHistoryDate(pair.second)
+                        LocalDate.parse(rawDate, storageDateFormatter)
+                    } catch (e: Exception) {
+                        LocalDate.MIN
+                    }
+                }.toMutableList()
+            }
 
             _uiState.update {
                 it.copy (
-                    plansList = list,
+                    plansList = sortedList,
                     email = repo.getEmail(),
                     isSignedIn = repo.getIsSignedIn(),
                     plansPrefix = repo.getPlansPrefix()
@@ -84,92 +95,108 @@ class HistoryScreenViewModel(private val repo: Repository) : ViewModel() {
     }
 
     fun removeFromHistory(date: String) {
-        repo.removeFromHistory(date)
-        val list = repo.getPlansList().sortedByDescending { pair ->
-            try {
-                val rawDate = repo.reformatHistoryDate(pair.second)
-                LocalDate.parse(rawDate, DateTimeFormatter.ofPattern("dd_MM_yyyy"))
-            } catch (e: Exception) {
-                LocalDate.MIN
+        viewModelScope.launch {
+            repo.removeFromHistory(date)
+            val storageDateFormatter = DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())
+            val plansList = withContext(Dispatchers.IO) { repo.getPlansList() }
+            val sortedList = withContext(Dispatchers.Default) {
+                plansList.sortedByDescending { pair ->
+                    try {
+                        val rawDate = repo.reformatHistoryDate(pair.second)
+                        LocalDate.parse(rawDate, storageDateFormatter)
+                    } catch (e: Exception) {
+                        LocalDate.MIN
+                    }
+                }.toMutableList()
             }
-        }.toMutableList()
 
-        _uiState.update {
-            it.copy (
-                plansList = list
-            )
-        }
+            _uiState.update {
+                it.copy (
+                    plansList = sortedList
+                )
+            }
 
-        if (_uiState.value.isSignedIn && isOnline()) {
-            getPlansFromDatabase()
+            if (_uiState.value.isSignedIn && isOnline()) {
+                getPlansFromDatabase()
+            }
         }
     }
 
     fun getPlansFromDatabase() {
-        db.collection(_uiState.value.email)
-            .document("history")
-            .collection("history_collection")
-            .get()
-            .addOnSuccessListener { plans ->
-                val sortedPlans = plans.sortedByDescending { doc ->
-                    try {
-                        LocalDate.parse(doc.id, DateTimeFormatter.ofPattern("dd_MM_yyyy"))
-                    } catch (e: Exception) {
-                        LocalDate.MIN
-                    }
-                }.mapNotNull { plan ->
-                    try {
-                        Pair(plan.get("plans").toString(), repo.reformatDate(plan.id))
-                    } catch (e: Exception) {
-                        null
-                    }
-                }.toMutableList()
+        val email = _uiState.value.email
+        if (email.isNotBlank() && email != "null" && isOnline()) {
+            db.collection(email)
+                .document("history")
+                .collection("history_collection")
+                .get()
+                .addOnSuccessListener { plans ->
+                    viewModelScope.launch {
+                        val storageDateFormatter = DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())
+                        val sortedPlans = withContext(Dispatchers.Default) {
+                            plans.sortedByDescending { doc ->
+                                try {
+                                    LocalDate.parse(doc.id, storageDateFormatter)
+                                } catch (e: Exception) {
+                                    LocalDate.MIN
+                                }
+                            }.mapNotNull { plan ->
+                                try {
+                                    Pair(plan.get("plans").toString(), repo.reformatDate(plan.id))
+                                } catch (e: Exception) {
+                                    null
+                                }
+                            }.toMutableList()
+                        }
 
-                repo.setPlansList(sortedPlans)
+                        repo.setPlansList(sortedPlans)
 
-                _uiState.update {
-                    it.copy(
-                        plansList = sortedPlans
-                    )
+                        _uiState.update {
+                            it.copy(
+                                plansList = sortedPlans
+                            )
+                        }
+                    }
                 }
-            }
-            .addOnFailureListener { e ->
-                Log.w("History Sync", "Error fetching history", e)
-            }
+                .addOnFailureListener { e ->
+                    Log.w("History Sync", "Error fetching history", e)
+                }
+        }
     }
 
     fun toggleHistoryPlanCompletion(formattedDate: String, index: Int) {
-        val historyList = repo.getPlansList().toMutableList()
-        val historyIndex = historyList.indexOfFirst { it.second == formattedDate }
+        viewModelScope.launch {
+            val historyList = withContext(Dispatchers.IO) { repo.getPlansList().toMutableList() }
+            val historyIndex = historyList.indexOfFirst { it.second == formattedDate }
 
-        if (historyIndex != -1) {
-            val plans = historyList[historyIndex].first
-            val prefix = _uiState.value.plansPrefix
-            val lines = plans.lines().toMutableList()
+            if (historyIndex != -1) {
+                val plans = historyList[historyIndex].first
+                val prefix = _uiState.value.plansPrefix
+                val lines = plans.lines().toMutableList()
 
-            if (index in lines.indices) {
-                val line = lines[index]
-                if (line.contains("$prefix*")) {
-                    lines[index] = line.replaceFirst("$prefix*", prefix)
-                } else if (line.contains(prefix)) {
-                    lines[index] = line.replaceFirst(prefix, "$prefix*")
-                }
-
-                val newPlans = lines.joinToString("\n")
-                historyList[historyIndex] = historyList[historyIndex].copy(first = newPlans)
-                repo.setPlansList(historyList)
-
-                _uiState.update {
-                    it.copy(plansList = historyList)
-                }
-
-                try {
-                    val rawDate = repo.reformatHistoryDate(formattedDate)
-                    if (_uiState.value.isSignedIn && isOnline()) {
-                        repo.savePlansToHistoryDatabase(rawDate, newPlans)
+                if (index in lines.indices) {
+                    val line = lines[index]
+                    if (line.contains("$prefix*")) {
+                        lines[index] = line.replaceFirst("$prefix*", prefix)
+                    } else if (line.contains(prefix)) {
+                        lines[index] = line.replaceFirst(prefix, "$prefix*")
                     }
-                } catch (e: Exception) {
-                    Log.e("History", "Error reformating date for DB sync", e)
+
+                    val newPlans = lines.joinToString("\n")
+                    historyList[historyIndex] = historyList[historyIndex].copy(first = newPlans)
+                    repo.setPlansList(historyList)
+
+                    _uiState.update {
+                        it.copy(plansList = historyList)
+                    }
+
+                    try {
+                        val rawDate = repo.reformatHistoryDate(formattedDate)
+                        if (_uiState.value.isSignedIn && isOnline()) {
+                            repo.savePlansToHistoryDatabase(rawDate, newPlans)
+                        }
+                    } catch (e: Exception) {
+                        Log.e("History", "Error reformating date for DB sync", e)
+                    }
                 }
             }
         }

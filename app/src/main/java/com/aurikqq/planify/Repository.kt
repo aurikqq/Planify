@@ -23,6 +23,9 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.update
 import kotlinx.serialization.json.Json
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Collections.emptyList
@@ -37,6 +40,8 @@ data class User (
 class Repository(private val sharedPreferences: SharedPreferences, private val context: Context) {
     val db = Firebase.firestore
 
+    private val json = Json { ignoreUnknownKeys = true }
+
     private val _user = MutableStateFlow(User())
     val user: StateFlow<User> = _user.asStateFlow()
 
@@ -48,6 +53,8 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
             _plansUpdatedFlow.tryEmit(Unit)
         }
     }
+
+    private val storageDateFormatter = DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())
 
     init {
         sharedPreferences.registerOnSharedPreferenceChangeListener(preferenceChangeListener)
@@ -62,13 +69,13 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
         }
     }
 
-    fun getDaysList(): MutableList<Pair<String, String>> {
+    suspend fun getDaysList(): MutableList<Pair<String, String>> = withContext(Dispatchers.IO) {
         val daysListJson = sharedPreferences.getString(KEY_DAILY_PLANS_LIST, "[]") ?: "[]"
-        return Json.decodeFromString(daysListJson)
+        return@withContext json.decodeFromString(daysListJson)
     }
 
-    fun saveDaysList(daysList: MutableList<Pair<String, String>>) {
-        val daysListJson = Json.encodeToString(daysList)
+    suspend fun saveDaysList(daysList: MutableList<Pair<String, String>>) = withContext(Dispatchers.IO) {
+        val daysListJson = json.encodeToString(daysList)
         sharedPreferences.edit { putString(KEY_DAILY_PLANS_LIST, daysListJson) }
     }
 
@@ -80,14 +87,14 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
         return sharedPreferences.getBoolean("${KEY_HAVE_PLANS}_$date", false)
     }
 
-    fun savePlansForDate(date: String, plans: String) {
+    suspend fun savePlansForDate(date: String, plans: String) = withContext(Dispatchers.IO) {
         val now = LocalDate.now()
-        val formattedDate = LocalDate.parse(date, DateTimeFormatter.ofPattern("dd_MM_yyyy"))
+        val formattedDate = LocalDate.parse(date, storageDateFormatter)
         if (now.isAfter(formattedDate) || now.isEqual(formattedDate)) {
             val dailyPlansHistory =
                 sharedPreferences.getString(KEY_DAILY_PLANS_HISTORY, "[]") ?: "[]"
             val plansList =
-                if (dailyPlansHistory.isNotBlank()) Json.decodeFromString<MutableList<Pair<String, String>>>(
+                if (dailyPlansHistory.isNotBlank()) json.decodeFromString<MutableList<Pair<String, String>>>(
                     dailyPlansHistory
                 )
                 else mutableListOf()
@@ -104,7 +111,7 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
                 plansList.add(Pair(plans, reformatDate(date)))
             }
 
-            val jsonPlansList = Json.encodeToString(plansList)
+            val jsonPlansList = json.encodeToString(plansList)
 
             sharedPreferences.edit {
                 putString(KEY_DAILY_PLANS_HISTORY, jsonPlansList)
@@ -164,13 +171,13 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
         }
     }
 
-    fun removeFromHistory(date: String) {
+    suspend fun removeFromHistory(date: String) = withContext(Dispatchers.IO) {
         val email = sharedPreferences.getString(USER_EMAIL, "") ?: ""
         val isSignedIn = email.isNotBlank()
 
         val dailyPlansHistory =
             sharedPreferences.getString(KEY_DAILY_PLANS_HISTORY, "[]") ?: "[]"
-        val plansList = Json.decodeFromString<MutableList<Pair<String, String>>>(dailyPlansHistory)
+        val plansList = json.decodeFromString<MutableList<Pair<String, String>>>(dailyPlansHistory)
         val newDate = reformatHistoryDate(date)
         println("current: $date")
         for (plan in plansList) {
@@ -193,7 +200,7 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
                 }
         }
 
-        val jsonPlansList = Json.encodeToString(plansList)
+        val jsonPlansList = json.encodeToString(plansList)
         sharedPreferences.edit {
             putString(KEY_DAILY_PLANS_HISTORY, jsonPlansList)
             remove("${KEY_PLANS}_$newDate")
@@ -205,7 +212,7 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
         return sharedPreferences.getBoolean(KEY_IS_FIRST_LAUNCH, true)
     }
 
-    fun addDateFromPicker(date: String) {
+    suspend fun addDateFromPicker(date: String) = withContext(Dispatchers.IO) {
         val email = sharedPreferences.getString(USER_EMAIL, "") ?: ""
         val isSignedIn = email.isNotBlank()
 
@@ -213,10 +220,10 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
         var datesJson =
             sharedPreferences.getString(KEY_DAILY_PLANS_LIST, "") ?: ""
         val plansList =
-            if (datesJson.isNotBlank()) Json.decodeFromString<MutableList<Pair<String, String>>>(datesJson)
+            if (datesJson.isNotBlank()) json.decodeFromString<MutableList<Pair<String, String>>>(datesJson)
             else mutableListOf()
         plansList.add(0, dayPlansAndDatePair)
-        datesJson = Json.encodeToString(plansList)
+        datesJson = json.encodeToString(plansList)
 
         sharedPreferences.edit {
             putString(KEY_DAILY_PLANS_LIST, datesJson)
@@ -247,28 +254,26 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
     }
 
     fun reformatDate(date: String) : String {
-        val inputFormatter = DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())
         val pattern = android.text.format.DateFormat.getBestDateTimePattern(Locale.getDefault(), "dMMMMyEEE")
         val outputFormatter = DateTimeFormatter.ofPattern(pattern, Locale.getDefault())
 
-        val parsedDate = LocalDate.parse(date, inputFormatter)
+        val parsedDate = LocalDate.parse(date, storageDateFormatter)
         return parsedDate.format(outputFormatter)
     }
 
     fun reformatHistoryDate(date: String) : String {
         val pattern = android.text.format.DateFormat.getBestDateTimePattern(Locale.getDefault(), "dMMMMyEEE")
         val inputFormatter = DateTimeFormatter.ofPattern(pattern, Locale.getDefault())
-        val outputFormatter = DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())
 
         val parsedDate = LocalDate.parse(date, inputFormatter)
-        return parsedDate.format(outputFormatter)
+        return parsedDate.format(storageDateFormatter)
     }
 
-    fun saveNote(note: Note) {
+    suspend fun saveNote(note: Note) = withContext(Dispatchers.IO) {
         var notesListJson =
             sharedPreferences.getString(KEY_NOTES_LIST, "[]") ?: "[]"
         val notesList =
-            if (notesListJson.isNotBlank()) Json.decodeFromString<MutableList<Note>>(notesListJson)
+            if (notesListJson.isNotBlank()) json.decodeFromString<MutableList<Note>>(notesListJson)
             else mutableListOf()
 
         val index = notesList.indexOfFirst { it.id == note.id }
@@ -279,38 +284,38 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
             notesList.add(note)
         }
 
-        notesListJson = Json.encodeToString(notesList)
+        notesListJson = json.encodeToString(notesList)
 
         sharedPreferences.edit {
             putString(KEY_NOTES_LIST, notesListJson)
         }
     }
 
-    fun removeNote(note: Note) {
+    suspend fun removeNote(note: Note) = withContext(Dispatchers.IO) {
         var notesListJson =
             sharedPreferences.getString(KEY_NOTES_LIST, "[]") ?: "[]"
-        val notesList = Json.decodeFromString<MutableList<Note>>(notesListJson)
+        val notesList = json.decodeFromString<MutableList<Note>>(notesListJson)
         notesList.remove(note)
-        notesListJson = Json.encodeToString(notesList)
+        notesListJson = json.encodeToString(notesList)
 
         sharedPreferences.edit {
             putString(KEY_NOTES_LIST, notesListJson)
         }
     }
 
-    fun getNotesList() : MutableList<Note> {
-        val json = sharedPreferences.getString(KEY_NOTES_LIST, "[]") ?: "[]"
-        return Json.decodeFromString<MutableList<Note>>(json)
+    suspend fun getNotesList() : MutableList<Note> = withContext(Dispatchers.IO) {
+        val jsonStr = sharedPreferences.getString(KEY_NOTES_LIST, "[]") ?: "[]"
+        return@withContext json.decodeFromString<MutableList<Note>>(jsonStr)
     }
 
-    fun getPlansList() : MutableList<Pair<String, String>> {
-        val json = sharedPreferences.getString(KEY_DAILY_PLANS_HISTORY, "[]") ?: "[]"
-        return Json.decodeFromString<MutableList<Pair<String, String>>>(json)
+    suspend fun getPlansList() : MutableList<Pair<String, String>> = withContext(Dispatchers.IO) {
+        val jsonStr = sharedPreferences.getString(KEY_DAILY_PLANS_HISTORY, "[]") ?: "[]"
+        return@withContext json.decodeFromString<MutableList<Pair<String, String>>>(jsonStr)
     }
 
-    fun setPlansList(list: MutableList<Pair<String, String>>) {
+    suspend fun setPlansList(list: MutableList<Pair<String, String>>) = withContext(Dispatchers.IO) {
         sharedPreferences.edit {
-            putString(KEY_DAILY_PLANS_HISTORY, Json.encodeToString(list))
+            putString(KEY_DAILY_PLANS_HISTORY, json.encodeToString(list))
         }
     }
 
@@ -512,8 +517,8 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
         return sharedPreferences.getBoolean(IS_PREFIX_HINT_SHOWN, true)
     }
 
-    fun updatePrefixInAllPlans(oldPrefix: String, newPrefix: String) {
-        if (oldPrefix == newPrefix) return
+    suspend fun updatePrefixInAllPlans(oldPrefix: String, newPrefix: String) = withContext(Dispatchers.IO) {
+        if (oldPrefix == newPrefix) return@withContext
 
         fun updatePlans(plans: String): String {
             return plans.lines().joinToString("\n") { line ->

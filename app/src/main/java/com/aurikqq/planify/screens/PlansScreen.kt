@@ -119,7 +119,7 @@ data class PlansScreenUiState(
     val isPlanEditing: Boolean = false,
     val tempPlanInput: String = "",
     val isFirstLaunch: Boolean = true,
-    val isUpdatePopupShown: Boolean = false,
+    val isUpdatePopupShown: Boolean = true,
     val plansNotificationsEnabled: Boolean = true,
     val resetNotificationsEnabled: Boolean = true,
     val isSignedIn: Boolean = false,
@@ -208,9 +208,11 @@ fun DaysList(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    for (day in uiState.days) {
-        if (day.second == uiState.currentDate) {
-            viewModel.removeDay(day, false)
+    LaunchedEffect(uiState.days, uiState.currentDate) {
+        uiState.days.forEach { day ->
+            if (day.second == uiState.currentDate) {
+                viewModel.removeDay(day, false)
+            }
         }
     }
 

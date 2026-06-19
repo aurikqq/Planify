@@ -11,12 +11,13 @@ import com.aurikqq.planify.Repository
 import com.aurikqq.planify.screens.PlansScreenUiState
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -62,9 +63,12 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
     @OptIn(ExperimentalCoroutinesApi::class)
     private fun loadInitialData() {
         viewModelScope.launch {
-            val currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern(
-                "dd_MM_yyyy", Locale.getDefault()))
-            val days = repo.getDaysList()
+            val storageDateFormatter = DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())
+            val currentDate = LocalDate.now().format(storageDateFormatter)
+            val days = withContext(Dispatchers.IO) { repo.getDaysList() }
+            val sortedDays = withContext(Dispatchers.Default) {
+                days.sortedBy { date -> LocalDate.parse(date.second, storageDateFormatter) }
+            }
             val havePlans = repo.havePlansForDate(currentDate)
             val isEditing = _uiState.value.isPlanEditing
 
@@ -72,8 +76,7 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
                 it.copy (
                     currentDate = currentDate,
                     selectedPickerDate = currentDate,
-                    days = days.sortedBy { date ->
-                        LocalDate.parse(date.second, DateTimeFormatter.ofPattern("dd_MM_yyyy")) },
+                    days = sortedDays,
                     plansForSelectedDate = repo.getPlansForDate(currentDate),
                     tempPlanInput = if (isEditing || !havePlans) repo.getTempPlans() else "",
                     havePlans = havePlans,
@@ -126,15 +129,17 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
 
         if (newPlans.isBlank()) return
 
-        repo.savePlansForDate(selectedDate, newPlans)
-        repo.sendToast(R.string.toast_set_plans, Toast.LENGTH_SHORT)
+        viewModelScope.launch {
+            repo.savePlansForDate(selectedDate, newPlans)
+            repo.sendToast(R.string.toast_set_plans, Toast.LENGTH_SHORT)
 
-        _uiState.update {
-            it.copy(
-                plansForSelectedDate = newPlans,
-                havePlans = true,
-                tempPlanInput = ""
-            )
+            _uiState.update {
+                it.copy(
+                    plansForSelectedDate = newPlans,
+                    havePlans = true,
+                    tempPlanInput = ""
+                )
+            }
         }
     }
 
@@ -146,14 +151,16 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
         if (additionalPlans.isBlank()) return
 
         val newPlans = "$currentPlans\n$additionalPlans"
-        repo.savePlansForDate(selectedDate, newPlans)
-        repo.sendToast(R.string.toast_added_plans, Toast.LENGTH_SHORT)
+        viewModelScope.launch {
+            repo.savePlansForDate(selectedDate, newPlans)
+            repo.sendToast(R.string.toast_added_plans, Toast.LENGTH_SHORT)
 
-        _uiState.update {
-            it.copy(
-                plansForSelectedDate = newPlans,
-                tempPlanInput = ""
-            )
+            _uiState.update {
+                it.copy(
+                    plansForSelectedDate = newPlans,
+                    tempPlanInput = ""
+                )
+            }
         }
     }
 
@@ -172,15 +179,17 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
         val newPlans = _uiState.value.tempPlanInput
         val selectedDate = _uiState.value.selectedPickerDate
 
-        repo.savePlansForDate(selectedDate, newPlans)
-        repo.sendToast(R.string.toast_edited_plans, Toast.LENGTH_SHORT)
+        viewModelScope.launch {
+            repo.savePlansForDate(selectedDate, newPlans)
+            repo.sendToast(R.string.toast_edited_plans, Toast.LENGTH_SHORT)
 
-        _uiState.update {
-            it.copy(
-                plansForSelectedDate = newPlans,
-                isPlanEditing = false,
-                tempPlanInput = ""
-            )
+            _uiState.update {
+                it.copy(
+                    plansForSelectedDate = newPlans,
+                    isPlanEditing = false,
+                    tempPlanInput = ""
+                )
+            }
         }
     }
 
@@ -217,13 +226,21 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
     }
 
     fun getDateFromPicker(date: String) {
-        val currentDaysList = _uiState.value.days.toMutableList()
-        currentDaysList.add(Pair("", date))
+        viewModelScope.launch {
+            val currentDaysList = _uiState.value.days.toMutableList()
+            currentDaysList.add(Pair("", date))
 
-        repo.addDateFromPicker(date)
+            repo.addDateFromPicker(date)
 
-        _uiState.update { it.copy(days = currentDaysList.sortedBy { date ->
-            LocalDate.parse(date.second, DateTimeFormatter.ofPattern("dd_MM_yyyy")) })}
+            val storageDateFormatter = DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())
+            val sortedList = withContext(Dispatchers.Default) {
+                currentDaysList.sortedBy { datePair ->
+                    LocalDate.parse(datePair.second, storageDateFormatter)
+                }
+            }
+
+            _uiState.update { it.copy(days = sortedList) }
+        }
     }
 
     fun setIsDaysListEditing(value: Boolean) {
@@ -235,20 +252,29 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
     }
 
     fun removeDay(day: Pair<String, String>, removePlansForCurrentDate: Boolean = true) {
-        val currentDaysList = _uiState.value.days.toMutableList()
-        currentDaysList.remove(day)
-        if (removePlansForCurrentDate) {
-            val now = LocalDate.now()
-            val formattedDate = LocalDate.parse(day.second, DateTimeFormatter.ofPattern("dd_MM_yyyy"))
-            if (now.isAfter(formattedDate) || now.isEqual(formattedDate)) {
-                repo.savePlansToHistoryDatabase(day.second, day.first)
+        viewModelScope.launch {
+            val currentDaysList = _uiState.value.days.toMutableList()
+            currentDaysList.remove(day)
+            if (removePlansForCurrentDate) {
+                val now = LocalDate.now()
+                val storageDateFormatter = DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())
+                val formattedDate = LocalDate.parse(day.second, storageDateFormatter)
+                if (now.isAfter(formattedDate) || now.isEqual(formattedDate)) {
+                    repo.savePlansToHistoryDatabase(day.second, day.first)
+                }
+                repo.removePlansForDate(day.second)
             }
-            repo.removePlansForDate(day.second)
-        }
-        repo.saveDaysList(currentDaysList)
+            repo.saveDaysList(currentDaysList)
 
-        _uiState.update { it.copy(days = currentDaysList.sortedBy { date ->
-            LocalDate.parse(date.second, DateTimeFormatter.ofPattern("dd_MM_yyyy")) }) }
+            val storageDateFormatter = DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())
+            val sortedList = withContext(Dispatchers.Default) {
+                currentDaysList.sortedBy { datePair ->
+                    LocalDate.parse(datePair.second, storageDateFormatter)
+                }
+            }
+
+            _uiState.update { it.copy(days = sortedList) }
+        }
     }
 
     fun tempPlans(plans: String) {
@@ -319,35 +345,43 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
     }
 
     fun getPlansFromDatabase() {
-        db.collection(_uiState.value.email)
-            .document("plans")
-            .collection("plans_collection")
-            .get()
-            .addOnSuccessListener { plans ->
-                val result = plans.map { plan ->
-                    Pair(
-                        plan.get("plans").toString(),
-                        plan.id
-                    )
-                }.sortedBy { date ->
-                    try {
-                        LocalDate.parse(date.second, DateTimeFormatter.ofPattern("dd_MM_yyyy"))
-                    } catch (e: Exception) {
-                        LocalDate.MIN
+        val email = _uiState.value.email
+        if (email.isNotBlank() && email != "null" && isOnline()) {
+            db.collection(email)
+                .document("plans")
+                .collection("plans_collection")
+                .get()
+                .addOnSuccessListener { plans ->
+                    viewModelScope.launch {
+                        val storageDateFormatter = DateTimeFormatter.ofPattern("dd_MM_yyyy", Locale.getDefault())
+                        val result = withContext(Dispatchers.Default) {
+                            plans.map { plan ->
+                                Pair(
+                                    plan.get("plans").toString(),
+                                    plan.id
+                                )
+                            }.sortedBy { date ->
+                                try {
+                                    LocalDate.parse(date.second, storageDateFormatter)
+                                } catch (e: Exception) {
+                                    LocalDate.MIN
+                                }
+                            }
+                        }
+                        Log.d("Plans Sync", "Imported plans from DB")
+
+                        _uiState.update {
+                            it.copy(
+                                days = result
+                            )
+                        }
+                        repo.saveDaysList(result.toMutableList())
                     }
                 }
-                Log.d("Plans Sync", "Imported plans from DB")
-
-                _uiState.update {
-                    it.copy(
-                        days = result
-                    )
+                .addOnFailureListener { e ->
+                    Log.w("Plans Sync", "Error adding plans", e)
                 }
-                repo.saveDaysList(result.toMutableList())
-            }
-            .addOnFailureListener { e ->
-                Log.w("Plans Sync", "Error adding plans", e)
-            }
+        }
     }
 
     fun togglePlanCompletion(index: Int) {
@@ -365,14 +399,16 @@ class PlansScreenViewModel(private val repo: Repository) : ViewModel() {
             }
 
             val newPlans = lines.joinToString("\n")
-            repo.savePlansForDate(selectedDate, newPlans)
+            viewModelScope.launch {
+                repo.savePlansForDate(selectedDate, newPlans)
 
-            _uiState.update {
-                it.copy(plansForSelectedDate = newPlans)
-            }
+                _uiState.update {
+                    it.copy(plansForSelectedDate = newPlans)
+                }
 
-            if (_uiState.value.isSignedIn && isOnline()) {
-                sendPlansToDatabase(newPlans)
+                if (_uiState.value.isSignedIn && isOnline()) {
+                    sendPlansToDatabase(newPlans)
+                }
             }
         }
     }

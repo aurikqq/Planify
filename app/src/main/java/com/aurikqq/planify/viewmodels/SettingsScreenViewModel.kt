@@ -106,13 +106,15 @@ open class SettingsScreenViewModel(private val repo: Repository) : ViewModel() {
 
     fun setPlansPrefix(prefix: String) {
         val oldPrefix = repo.getPlansPrefix()
-        repo.setPlansPrefix(prefix)
-        repo.updatePrefixInAllPlans(oldPrefix, prefix)
+        viewModelScope.launch {
+            repo.setPlansPrefix(prefix)
+            repo.updatePrefixInAllPlans(oldPrefix, prefix)
 
-        _uiState.update {
-            it.copy(
-                plansPrefix = prefix
-            )
+            _uiState.update {
+                it.copy(
+                    plansPrefix = prefix
+                )
+            }
         }
     }
 

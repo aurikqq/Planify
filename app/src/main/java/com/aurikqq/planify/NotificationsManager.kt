@@ -21,6 +21,9 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -31,28 +34,33 @@ const val CHANNEL_ID = "planify_channel_id"
 
 class TimeReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
-        val sharedPreferences =
-            context?.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
-        val repo = Repository(
-            sharedPreferences!!, context)
-        val currentDate = LocalDate.now().format(
-            DateTimeFormatter.ofPattern(
-                "dd_MM_yyyy", Locale.getDefault()
-            )
-        )
+        if (context == null) return
+        val pendingResult = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val app = context.applicationContext as PlanifyApp
+                val repo = app.repository
+                val currentDate = LocalDate.now().format(
+                    DateTimeFormatter.ofPattern(
+                        "dd_MM_yyyy", Locale.getDefault()
+                    )
+                )
 
-        if (repo.havePlansForDate(currentDate)) {
+                if (repo.havePlansForDate(currentDate)) {
+                    val plans = context.getString(R.string.notification_text) + "\n" + repo.getPlansForDate(currentDate)
 
-            val plans = context.getString(R.string.notification_text) + "\n" + repo.getPlansForDate(currentDate)
+                    val notificationTitles = listOf(
+                        context.getString(R.string.notification_title_01),
+                        context.getString(R.string.notification_title_02),
+                        context.getString(R.string.notification_title_03)
+                    )
 
-            val notificationTitles = listOf(
-                context.getString(R.string.notification_title_01),
-                context.getString(R.string.notification_title_02),
-                context.getString(R.string.notification_title_03)
-            )
-
-            showPlansNotification(context, notificationTitles.random(), plans)
-            AlarmScheduler.scheduleRepeatingAlarm(context)
+                    showPlansNotification(context, notificationTitles.random(), plans)
+                    AlarmScheduler.scheduleRepeatingAlarm(context)
+                }
+            } finally {
+                pendingResult.finish()
+            }
         }
     }
 }
@@ -60,8 +68,8 @@ class TimeReceiver : BroadcastReceiver() {
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
         if (intent?.action == Intent.ACTION_BOOT_COMPLETED && context != null) {
-            val sharedPreferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
-            val repo = Repository(sharedPreferences!!, context)
+            val app = context.applicationContext as PlanifyApp
+            val repo = app.repository
 
             if (repo.getPlansNotificationsEnabled()) {
                 AlarmScheduler.scheduleAlarm(context)
@@ -78,24 +86,30 @@ class BootReceiver : BroadcastReceiver() {
 class ResetReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
         if (context == null) return
-        try {
-            val sharedPreferences = context.getSharedPreferences(
-                PREFERENCES_NAME,
-                Context.MODE_PRIVATE
-            )
-            val repo = Repository(sharedPreferences!!, context)
-            if (repo.getResetNotificationsEnabled() && repo.havePlansForDate("${LocalDate.now().dayOfMonth - 1}_${LocalDate.now().month}_${LocalDate.now().year}")) {
-                showPlansResetNotification(context)
-            }
+        val pendingResult = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val sharedPreferences = context.getSharedPreferences(
+                    PREFERENCES_NAME,
+                    Context.MODE_PRIVATE
+                )
+                val app = context.applicationContext as PlanifyApp
+                val repo = app.repository
+                if (repo.getResetNotificationsEnabled() && repo.havePlansForDate("${LocalDate.now().dayOfMonth - 1}_${LocalDate.now().month}_${LocalDate.now().year}")) {
+                    showPlansResetNotification(context)
+                }
 
-            sharedPreferences.edit {
-                remove(KEY_PLANS)
-                putBoolean(KEY_HAVE_PLANS, false)
+                sharedPreferences.edit {
+                    remove(KEY_PLANS)
+                    putBoolean(KEY_HAVE_PLANS, false)
+                }
+                AlarmScheduler.cancelNotifications(context)
             }
-            AlarmScheduler.cancelNotifications(context)
-        }
-        catch (e: Exception) {
-            Log.d("PlansReset", "Error: $e")
+            catch (e: Exception) {
+                Log.d("PlansReset", "Error: $e")
+            } finally {
+                pendingResult.finish()
+            }
         }
     }
 }
@@ -250,10 +264,8 @@ fun showPlansNotification(
 
 @SuppressLint("MissingPermission")
 fun showPlansResetNotification(context: Context) {
-    val sharedPreferences =
-        context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE)
-    val repo = Repository(
-        sharedPreferences!!, context)
+    val app = context.applicationContext as PlanifyApp
+    val repo = app.repository
     val currentDate = LocalDate.now().format(
         DateTimeFormatter.ofPattern(
             "dd_MM_yyyy", Locale.getDefault()
