@@ -51,18 +51,14 @@ left unfinished is quietly left in a searchable history.
 
 - **Language:** Kotlin
 - **UI:** Jetpack Compose + Material 3, edge-to-edge layout, adaptive
-  navigation (bottom bar / navigation rail) via `WindowSizeClass`
+  navigation
 - **Architecture:** MVVM (`ViewModel` + `StateFlow` per screen), a shared
   `Repository` backed by `SharedPreferences` for local storage
-- **Cloud:** Firebase Firestore (sync) + Firebase Analytics, Google Sign-In via
+- **Cloud:** Firebase Firestore, Google Sign-In via
   Credential Manager
 - **Scheduling:** `AlarmManager` exact alarms + `BroadcastReceiver`s for daily
   reminders, resets, and boot-time rescheduling
-- **Min SDK / Target SDK:** 26 / 36 (compiled against SDK 37)
 
 ## Localization
 
-Ships with English and Russian string resources.
-
-A `local.properties` file with a `GITHUB_TOKEN` entry is required for the
-in-app update checker to query the GitHub Releases API at build time.
+Ships with English and Russian languages.
