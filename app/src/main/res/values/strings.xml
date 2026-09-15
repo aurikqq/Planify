@@ -63,6 +63,10 @@
     <string name="setting_plans_prefix">Item prefix</string>
     <string name="setting_plans_prefix_desc">What makes a line a separate item when typed at the beginning</string>
     <string name="setting_plans_prefix_hint">↑ Confused? Hold this item for an explanation</string>
+    <string name="setting_notes_button_placement">Move Add Note button down</string>
+    <string name="setting_notes_button_placement_desc">Where the button for creating new notes should be on the screen</string>
+    <string name="setting_notes_button_placement_start">At the beginning</string>
+    <string name="setting_notes_button_placement_end">At the end</string>
     <string name="settings_category_appearance">Appearance</string>
     <string name="setting_app_theme">App theme</string>
     <string name="theme_dark">Dark</string>
@@ -110,4 +114,6 @@
     <string name="label_downloading">Downloading…</string>
     <string name="label_today">today</string>
     <string name="label_tomorrow">tomorrow</string>
+    <string name="github">GitHub repository</string>
+    <string name="updater_fail">Couldn\'t check for updates...</string>
 </resources>

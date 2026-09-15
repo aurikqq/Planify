@@ -7,6 +7,8 @@ import android.content.Context
 import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -660,8 +662,19 @@ fun TabsBar(
 
 suspend fun checkUpdates(context: Context) : Boolean {
     val current = getCurrentVersion(context)
-    val latest = getLatestVersion()
-    val result = isNewVersionAvailable(current!!, latest!!)
+    var latest: String? = null
+    try {
+        latest = getLatestVersion()
+    }
+    catch (e: Exception) {
+        Log.e("Updater", "Exception: $e")
+        Toast.makeText(context, R.string.updater_fail, Toast.LENGTH_LONG).show()
+    }
+
+    var result = false
+    if (!latest.isNullOrBlank()) {
+        result = isNewVersionAvailable(current!!, latest)
+    }
 
     return result
 }

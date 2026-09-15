@@ -2,6 +2,8 @@ package com.aurikqq.planify.screens
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.util.Log
 import android.widget.Toast
@@ -41,6 +43,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.InvertColors
 import androidx.compose.material.icons.filled.Notifications
@@ -121,7 +124,8 @@ data class SettingsScreenUiState (
     val isSignedIn: Boolean = false,
     val email: String = "null",
     val plansPrefix: String = "--",
-    val isPrefixHintShown: Boolean = true
+    val isPrefixHintShown: Boolean = true,
+    val isNotesButtonAtEnd: Boolean = true
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -300,6 +304,20 @@ fun SettingsScreen(viewModel: SettingsScreenViewModel) {
             item {
                 SettingsCategory(stringResource(R.string.settings_category_behavior)) {
                     ListItem(
+                        headlineContent = { Text(stringResource(R.string.setting_notes_button_placement)) },
+                        trailingContent = {
+                            Switch(
+                                checked = uiState.isNotesButtonAtEnd,
+                                onCheckedChange = { viewModel.setNotesButtonPlacement(it) }
+                            )
+                        },
+                        leadingContent = { Icon(Icons.Default.ArrowDownward, null) },
+                        modifier = Modifier.clickable {
+                            viewModel.setNotesButtonPlacement(!uiState.isNotesButtonAtEnd)
+                        }
+                    )
+
+                    ListItem(
                         headlineContent = { Text(stringResource(R.string.setting_plans_prefix)) },
                         trailingContent = {
                             Text(
@@ -376,6 +394,19 @@ fun SettingsScreen(viewModel: SettingsScreenViewModel) {
                         modifier = Modifier.clickable(
                             enabled = true,
                             onClick = { isChangelogShown = true },
+                            interactionSource = null,
+                            indication = ripple(bounded = true)
+                        )
+                    )
+
+                    ListItem(
+                        headlineContent = { Text(stringResource(R.string.github)) },
+                        leadingContent = { Icon(Icons.Default.Code, null) },
+                        modifier = Modifier.clickable(
+                            enabled = true,
+                            onClick = {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/aurikqq/Planify")))
+                            },
                             interactionSource = null,
                             indication = ripple(bounded = true)
                         )

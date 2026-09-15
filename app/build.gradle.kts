@@ -1,5 +1,4 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -17,20 +16,9 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 1
-        versionName = "0.4.1"
+        versionName = "0.4.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-        val localProperties = rootProject.file("local.properties")
-        val props = Properties()
-        if (localProperties.exists()) {
-            props.load(localProperties.inputStream())
-            val githubToken = props.getProperty("GITHUB_TOKEN") ?: ""
-            buildConfigField("String", "GITHUB_TOKEN", "\"$githubToken\"")
-        }
-        else {
-            buildConfigField("String", "GITHUB_TOKEN", "\"\"")
-        }
     }
 
     buildTypes {

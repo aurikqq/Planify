@@ -20,14 +20,12 @@ suspend fun getLatestVersion(): String? = withContext(Dispatchers.IO) {
     val client = OkHttpClient()
     val request = Request.Builder()
         .url("https://api.github.com/repos/aurikqq/Planify/releases/latest")
-        .header("Authorization", "token ${BuildConfig.GITHUB_TOKEN}")
         .build()
 
     val response = client.newCall(request).execute()
     val body = response.body.string()
 
     val json = JSONObject(body)
-    println(json)
     json.getString("tag_name")
 }
 
@@ -40,7 +38,6 @@ suspend fun downloadApk(context: Context, onProgress: (Float) -> Unit): File =
             .build()
         val request = Request.Builder()
             .url(url)
-            .header("Authorization", "token ${BuildConfig.GITHUB_TOKEN}")
             .build()
 
         val response = client.newCall(request).execute()
@@ -66,7 +63,6 @@ suspend fun downloadApk(context: Context, onProgress: (Float) -> Unit): File =
         val dlRequest = Request.Builder()
             .url(apkUrl)
             .header("Accept", "application/octet-stream")
-            .header("Authorization", "token ${BuildConfig.GITHUB_TOKEN}")
             .header("User-Agent", "PlanifyAutoUpdater")
             .build()
         val dlResponse = client.newCall(dlRequest).execute()

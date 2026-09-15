@@ -42,7 +42,8 @@ open class SettingsScreenViewModel(private val repo: Repository) : ViewModel() {
                     isSignedIn = repo.getIsSignedIn(),
                     email = repo.getEmail(),
                     plansPrefix = repo.getPlansPrefix(),
-                    isPrefixHintShown = repo.getIsPrefixHintShown()
+                    isPrefixHintShown = repo.getIsPrefixHintShown(),
+                    isNotesButtonAtEnd = repo.getNotesButtonPlacement()
                 )
             }
         }
@@ -123,6 +124,15 @@ open class SettingsScreenViewModel(private val repo: Repository) : ViewModel() {
         _uiState.update {
             it.copy(
                 isPrefixHintShown = false
+            )
+        }
+    }
+
+    fun setNotesButtonPlacement(atEnd: Boolean) {
+        repo.setNotesButtonPlacement(atEnd)
+        _uiState.update {
+            it.copy(
+                isNotesButtonAtEnd = atEnd
             )
         }
     }

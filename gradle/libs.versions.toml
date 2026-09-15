@@ -1,7 +1,7 @@
 [versions]
 activity = "1.13.0"
 activityComposeVersion = "1.9.0"
-agp = "9.2.1"
+agp = "9.3.2"
 androidxNavigationCompose = "2.8.0"
 animation = "1.11.2"
 apkupdaterLibraryVersion = "v2.1.0"

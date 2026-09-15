@@ -63,6 +63,10 @@
     <string name="setting_plans_prefix">Префикс пунктов</string>
     <string name="setting_plans_prefix_desc">То, что при вводе перед строкой делает её отдельным пунктом</string>
     <string name="setting_plans_prefix_hint">↑ Что-то непонятно? Зажми этот пункт, чтобы получить объяснение</string>
+    <string name="setting_notes_button_placement">Кнопка \"Добавить записи\" внизу</string>
+    <string name="setting_notes_button_placement_desc">Где на экране должна быть кнопка для создания новых записей</string>
+    <string name="setting_notes_button_placement_start">В начале</string>
+    <string name="setting_notes_button_placement_end">В конце</string>
     <string name="settings_category_appearance">Внешний вид</string>
     <string name="setting_app_theme">Тема приложения</string>
     <string name="theme_dark">Тёмная</string>
@@ -110,4 +114,6 @@
     <string name="label_downloading">Скачивание…</string>
     <string name="label_today">сегодня</string>
     <string name="label_tomorrow">завтра</string>
+    <string name="github">Репозиторий GitHub</string>
+    <string name="updater_fail">Не вышло проверить обновления...</string>
 </resources>

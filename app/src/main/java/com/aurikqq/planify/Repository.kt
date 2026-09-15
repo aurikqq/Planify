@@ -49,7 +49,7 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
     val plansUpdatedFlow = _plansUpdatedFlow.asSharedFlow()
 
     private val preferenceChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        if (key == PLANS_PREFIX || key == KEY_DAILY_PLANS_HISTORY || key?.startsWith(KEY_PLANS) == true) {
+        if (key == PLANS_PREFIX || key == KEY_DAILY_PLANS_HISTORY || key?.startsWith(KEY_PLANS) == true || key == NOTES_BUTTON_PLACEMENT_AT_END) {
             _plansUpdatedFlow.tryEmit(Unit)
         }
     }
@@ -517,6 +517,16 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
         return sharedPreferences.getBoolean(IS_PREFIX_HINT_SHOWN, true)
     }
 
+    fun setNotesButtonPlacement(atEnd: Boolean) {
+        sharedPreferences.edit {
+            putBoolean(NOTES_BUTTON_PLACEMENT_AT_END, atEnd)
+        }
+    }
+
+    fun getNotesButtonPlacement() : Boolean {
+        return sharedPreferences.getBoolean(NOTES_BUTTON_PLACEMENT_AT_END, true)
+    }
+
     suspend fun updatePrefixInAllPlans(oldPrefix: String, newPrefix: String) = withContext(Dispatchers.IO) {
         if (oldPrefix == newPrefix) return@withContext
 
@@ -572,6 +582,32 @@ class Repository(private val sharedPreferences: SharedPreferences, private val c
                         .set(planMap)
 
                     savePlansToHistoryDatabase(date, newPlans)
+                }
+            }
+        }
+
+        // 4. Update KEY_NOTES_LIST
+        val notesList = getNotesList()
+        notesList.forEach { note ->
+            val oldText = note.text
+            val newText = updatePlans(oldText)
+            if (oldText != newText) {
+                val updatedNote = note.copy(text = newText)
+                saveNote(updatedNote)
+
+                if (isSignedIn && online) {
+                    val noteHash = hashMapOf(
+                        "title" to updatedNote.title,
+                        "text" to updatedNote.text,
+                        "is_expanded" to updatedNote.isExpanded,
+                        "timestamp" to updatedNote.timestamp
+                    )
+
+                    db.collection(email)
+                        .document("notes")
+                        .collection("notes_collection")
+                        .document(updatedNote.id)
+                        .set(noteHash)
                 }
             }
         }

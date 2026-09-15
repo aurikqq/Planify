@@ -33,6 +33,7 @@ const val USER_EMAIL = "user_email"
 //const val TEXT_WIDGET_DATA = "text_widget_data"
 const val PLANS_PREFIX = "plans_prefix"
 const val IS_PREFIX_HINT_SHOWN = "is_prefix_hint_shown"
+const val NOTES_BUTTON_PLACEMENT_AT_END = "notes_button_placement_at_end"
 const val CHANGELOG = "- Разные оптимизации, теперь должно работать побыстрее\n" +
         "- Исправления багов:\n" +
         "        * Боковое меню больше не открывается (в настройках)" +

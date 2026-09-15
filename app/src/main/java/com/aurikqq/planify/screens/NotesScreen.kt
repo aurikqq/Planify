@@ -80,6 +80,7 @@ import com.aurikqq.planify.Repository
 import com.aurikqq.planify.components.AnimatedButton
 import com.aurikqq.planify.components.AnimatedElevatedButton
 import com.aurikqq.planify.components.AnimatedTonalButton
+import com.aurikqq.planify.components.PlansUnit
 import com.aurikqq.planify.ui.theme.PlanifyTheme
 import com.aurikqq.planify.viewmodels.Note
 import com.aurikqq.planify.viewmodels.NotesScreenViewModel
@@ -92,7 +93,9 @@ data class NotesScreenUiState(
     val isAddingNote: Boolean = false,
     val isEditing: Boolean = false,
     val isSignedIn: Boolean = false,
-    val email: String = ""
+    val email: String = "",
+    val plansPrefix: String = "--",
+    val isNotesButtonAtEnd: Boolean = true
 )
 
 @Composable
@@ -129,51 +132,18 @@ fun NotesScreen(modifier: Modifier = Modifier) {
             //.snowfall()
     ) {
         if (uiState.notes.isNotEmpty()) {
+            if (!uiState.isNotesButtonAtEnd) {
+                addNoteSection(uiState, viewModel)
+                item { Spacer(Modifier.size(16.dp)) }
+            }
+
             items(uiState.notes, key = { it.id }) { note ->
                 NoteCard(note, viewModel, uiState,
                     keyboardController, focusRequester, Modifier)
             }
 
-            item {
-                if (!uiState.isAddingNote) {
-                    val isEnabled = !uiState.isEditing
-
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        AnimatedButton(
-                            onClick = { viewModel.isAddingNote(true) },
-                            enabled = isEnabled
-                        ) {
-                            Text(stringResource(R.string.label_add_note))
-                        }
-                    }
-                }
-                else {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        EmptyNoteCard(uiState, viewModel, Modifier)
-
-                        Spacer(Modifier.size(32.dp))
-
-                        Row(horizontalArrangement = Arrangement.SpaceAround, modifier = Modifier.fillMaxWidth()) {
-                            ElevatedButton(
-                                onClick = { viewModel.isAddingNote(false) }
-                            ) {
-                                Text(stringResource(R.string.button_cancel))
-                            }
-
-                            val isSetEnabled = uiState.tempNote.isNotBlank() && uiState.tempNoteTitle.isNotBlank()
-
-                            AnimatedButton(
-                                onClick = {
-                                    viewModel.setNote()
-                                    viewModel.isAddingNote(false)
-                                },
-                                enabled = isSetEnabled
-                            ) {
-                                Text(stringResource(R.string.button_add_plans))
-                            }
-                        }
-                    }
-                }
+            if (uiState.isNotesButtonAtEnd) {
+                addNoteSection(uiState, viewModel)
             }
         } else {
             item {
@@ -204,6 +174,59 @@ fun NotesScreen(modifier: Modifier = Modifier) {
                     enabled = isEnabled
                 ) {
                     Text(stringResource(R.string.button_set_plans))
+                }
+            }
+        }
+    }
+}
+
+private fun androidx.compose.foundation.lazy.LazyListScope.addNoteSection(
+    uiState: NotesScreenUiState,
+    viewModel: NotesScreenViewModel
+) {
+    item {
+        if (!uiState.isAddingNote) {
+            val isEnabled = !uiState.isEditing
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                AnimatedButton(
+                    onClick = { viewModel.isAddingNote(true) },
+                    enabled = isEnabled
+                ) {
+                    Text(stringResource(R.string.label_add_note))
+                }
+            }
+        } else {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                EmptyNoteCard(uiState, viewModel, Modifier)
+
+                Spacer(Modifier.size(32.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.SpaceAround,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    ElevatedButton(
+                        onClick = { viewModel.isAddingNote(false) }
+                    ) {
+                        Text(stringResource(R.string.button_cancel))
+                    }
+
+                    val isSetEnabled =
+                        uiState.tempNote.isNotBlank() && uiState.tempNoteTitle.isNotBlank()
+
+                    AnimatedButton(
+                        onClick = {
+                            viewModel.setNote()
+                            viewModel.isAddingNote(false)
+                        },
+                        enabled = isSetEnabled
+                    ) {
+                        Text(stringResource(R.string.button_add_plans))
+                    }
                 }
             }
         }
@@ -254,9 +277,8 @@ fun NoteCard(
                         )
                         IconButton(
                             onClick = {
-                                note.isExpanded = !note.isExpanded
-                                viewModel.setNote(note)
-                                viewModel.sendNoteToDatabase(note)
+                                val updatedNote = note.copy(isExpanded = !note.isExpanded)
+                                viewModel.setNote(updatedNote)
                                 isExpanded = !isExpanded
                             },
                             shape = RoundedCornerShape(12.dp)
@@ -273,17 +295,39 @@ fun NoteCard(
                         enter = expandVertically(expandFrom = Alignment.Top) + fadeIn(),
                         exit = shrinkVertically(shrinkTowards = Alignment.Top) + fadeOut()
                     ) {
-                        Text(
-                            text = note.text,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Column {
+                            note.text.lines().forEachIndexed { index, str ->
+                                if (str.isNotBlank()) {
+                                    val prefix = uiState.plansPrefix
+                                    if (str.replace(" ", "").startsWith(prefix)) {
+                                        val isDone = str.contains("$prefix*")
+                                        val cleanText = if (isDone) {
+                                            str.replaceFirst("$prefix*", "").trim()
+                                        } else {
+                                            str.replaceFirst(prefix, "").trim()
+                                        }
+
+                                        PlansUnit(
+                                            isDone = isDone,
+                                            text = cleanText,
+                                            onClick = { viewModel.toggleNotePlanCompletion(note, index) }
+                                        )
+                                    } else {
+                                        Text(
+                                            text = str,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 } else {
                     OutlinedTextField(
                         value = note.title,
                         onValueChange = {
-                            viewModel.onNoteTitleEditingInput(it)
-                            note.title = it
+                            viewModel.onNoteTitleEditingInput(note, it)
                         },
                         textStyle = LocalTextStyle.current.copy(
                             fontSize = 18.sp,
@@ -303,8 +347,7 @@ fun NoteCard(
                     OutlinedTextField(
                         value = note.text,
                         onValueChange = {
-                            viewModel.onNoteTextEditingInput(it)
-                            note.text = it
+                            viewModel.onNoteTextEditingInput(note, it)
                         },
                         textStyle = LocalTextStyle.current.copy(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
